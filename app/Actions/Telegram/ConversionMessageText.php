@@ -24,6 +24,7 @@ class ConversionMessageText
      * Check if entities contain formatting types that require MarkdownV2.
      *
      * @param array $entities
+     *
      * @return bool
      */
     public static function hasFormattingEntities(array $entities): bool
@@ -41,12 +42,13 @@ class ConversionMessageText
      * Convert message to MarkdownV2 format.
      *
      * @param string $text
-     * @param array $entities
+     * @param array  $entities
+     *
      * @return string
      */
     public static function conversionMarkdownFormat(string $text, array $entities): string
     {
-        usort($entities, fn($a, $b) => $b['offset'] <=> $a['offset']);
+        usort($entities, fn ($a, $b) => $b['offset'] <=> $a['offset']);
 
         foreach ($entities as $entity) {
             $offset = $entity['offset'];
@@ -79,5 +81,4 @@ class ConversionMessageText
 
         return $text;
     }
-
 }

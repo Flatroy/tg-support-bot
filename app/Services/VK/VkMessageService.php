@@ -45,7 +45,6 @@ class VkMessageService extends ToTgMessageService
             } elseif (!empty($this->update->geo)) {
                 $this->sendLocation();
             }
-
         } catch (\Throwable $e) {
             (new LokiLogger())->logException($e);
         }

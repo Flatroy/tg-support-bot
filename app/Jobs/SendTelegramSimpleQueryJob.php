@@ -36,7 +36,7 @@ class SendTelegramSimpleQueryJob extends AbstractSendMessageJob
         try {
             if (!empty($this->queryParams->chat_id)) {
                 $botUser = BotUser::where([
-                    'chat_id' => $this->queryParams->chat_id
+                    'chat_id' => $this->queryParams->chat_id,
                 ])->first();
                 $this->botUserId = $botUser->id ?? 0;
             }
@@ -53,7 +53,6 @@ class SendTelegramSimpleQueryJob extends AbstractSendMessageJob
             if (!$response->ok) {
                 $this->telegramResponseHandler($response);
             }
-
         } catch (\Throwable $e) {
             (new LokiLogger())->logException($e);
         }
@@ -61,7 +60,8 @@ class SendTelegramSimpleQueryJob extends AbstractSendMessageJob
 
     /**
      * @param BotUser $botUser
-     * @param mixed $resultQuery
+     * @param mixed   $resultQuery
+     *
      * @return void
      */
     protected function editMessage(BotUser $botUser, mixed $resultQuery): void
@@ -71,7 +71,8 @@ class SendTelegramSimpleQueryJob extends AbstractSendMessageJob
 
     /**
      * @param BotUser $botUser
-     * @param mixed $resultQuery
+     * @param mixed   $resultQuery
+     *
      * @return void
      */
     protected function saveMessage(BotUser $botUser, mixed $resultQuery): void

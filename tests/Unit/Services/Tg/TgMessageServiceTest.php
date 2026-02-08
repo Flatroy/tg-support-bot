@@ -6,7 +6,6 @@ use App\Jobs\SendMessage\SendTelegramMessageJob;
 use App\Models\BotUser;
 use App\Models\Message;
 use App\Services\Tg\TgMessageService;
-use Illuminate\Auth\DatabaseUserProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;

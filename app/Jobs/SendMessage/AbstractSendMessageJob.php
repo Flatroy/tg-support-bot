@@ -80,14 +80,14 @@ abstract class AbstractSendMessageJob implements ShouldQueue
         }
 
         if ($response->response_code === 400 && $response->type_error === 'MARKDOWN_ERROR') {
-            (new LokiLogger())->log('warning', "MARKDOWN_ERROR -> switching parse_mode to HTML");
+            (new LokiLogger())->log('warning', 'MARKDOWN_ERROR -> switching parse_mode to HTML');
             $this->queryParams->parse_mode = 'html';
             $this->release(1);
             return;
         }
 
         if ($response->response_code === 400 && in_array($response->type_error, ['TOPIC_NOT_FOUND', 'TOPIC_DELETED', 'TOPIC_ID_INVALID'])) {
-            (new LokiLogger())->log('warning', "TOPIC_NOT_FOUND/TOPIC_DELETED -> creating new topic");
+            (new LokiLogger())->log('warning', 'TOPIC_NOT_FOUND/TOPIC_DELETED -> creating new topic');
 
             $retryJob = $this->getRetryJobInstance();
             if ($retryJob !== null) {
@@ -104,7 +104,7 @@ abstract class AbstractSendMessageJob implements ShouldQueue
         }
 
         if ($response->response_code === 403) {
-            (new LokiLogger())->log('warning', "403 - user blocked the bot");
+            (new LokiLogger())->log('warning', '403 - user blocked the bot');
             BanMessage::execute($this->botUserId, $this->updateDto);
             return;
         }
