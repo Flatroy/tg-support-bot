@@ -5,9 +5,11 @@ use App\Http\Controllers\ExternalTrafficController;
 use App\Http\Controllers\FilesController;
 use App\Http\Controllers\TelegramBotController;
 use App\Http\Controllers\VkBotController;
+use App\Http\Controllers\WhatsAppBotController;
 use App\Middleware\ApiQuery;
 use App\Middleware\TelegramQuery;
 use App\Middleware\VkQuery;
+use App\Middleware\WhatsAppQuery;
 use App\TelegramBot\TelegramMethods;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +37,13 @@ Route::group([
     'prefix' => 'vk',
 ], function () {
     Route::post('bot', [VkBotController::class, 'bot_query'])->middleware(VkQuery::class);
+});
+
+Route::group([
+    'prefix' => 'whatsapp',
+], function () {
+    Route::get('bot', [WhatsAppBotController::class, 'verify']);
+    Route::post('bot', [WhatsAppBotController::class, 'bot_query'])->middleware(WhatsAppQuery::class);
 });
 
 Route::group([

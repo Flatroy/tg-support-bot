@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\TelegramBot;
 
 use App\Logging\LokiLogger;
@@ -112,8 +114,8 @@ class ParserMethods
                 throw new phpDocumentorException('Temporary file does not exist or is not readable');
             }
 
-            $extension = $attachData->getClientOriginalExtension();
-            $safeName = Str::uuid() . ($extension ? '.' . $extension : '');
+            $originalName = $attachData->getClientOriginalName();
+            $safeName = $originalName ?: (Str::uuid() . '.' . ($attachData->getClientOriginalExtension() ?: 'bin'));
 
             $resultQuery = Http::attach(
                 $attachType,

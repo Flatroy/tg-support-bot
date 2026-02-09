@@ -19,6 +19,8 @@ use App\Services\TgExternal\TgExternalEditService;
 use App\Services\TgExternal\TgExternalMessageService;
 use App\Services\TgVk\TgVkEditService;
 use App\Services\TgVk\TgVkMessageService;
+use App\Services\TgWhatsApp\TgWhatsAppEditService;
+use App\Services\TgWhatsApp\TgWhatsAppMessageService;
 use Illuminate\Http\Request;
 
 class TelegramBotController
@@ -111,6 +113,10 @@ class TelegramBotController
                     $this->controllerPlatformVk();
                     break;
 
+                case 'whatsapp':
+                    $this->controllerPlatformWhatsApp();
+                    break;
+
                 case 'ignore':
                     return;
 
@@ -171,6 +177,27 @@ class TelegramBotController
 
             case 'edited_message':
                 (new TgVkEditService($this->dataHook))->handleUpdate();
+                break;
+
+            default:
+                throw new \Exception("Unknown event type: {$this->dataHook->typeQuery}");
+        }
+    }
+
+    /**
+     * Controller WhatsApp message.
+     *
+     * @return void
+     */
+    private function controllerPlatformWhatsApp(): void
+    {
+        switch ($this->dataHook->typeQuery) {
+            case 'message':
+                (new TgWhatsAppMessageService($this->dataHook))->handleUpdate();
+                break;
+
+            case 'edited_message':
+                (new TgWhatsAppEditService($this->dataHook))->handleUpdate();
                 break;
 
             default:

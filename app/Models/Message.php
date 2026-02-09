@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int                  $from_id
  * @property int                  $to_id
  * @property ExternalMessage|null $externalMessage
+ * @property WhatsappMessage|null $whatsappMessage
  * @property BotUser|null         $botUser
  */
 class Message extends Model
@@ -34,6 +35,14 @@ class Message extends Model
     public function externalMessage(): HasOne
     {
         return $this->hasOne(ExternalMessage::class);
+    }
+
+    /**
+     * @return HasOne
+     */
+    public function whatsappMessage(): HasOne
+    {
+        return $this->hasOne(WhatsappMessage::class);
     }
 
     /**

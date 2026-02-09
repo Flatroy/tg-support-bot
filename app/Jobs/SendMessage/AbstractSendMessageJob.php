@@ -8,6 +8,7 @@ use App\DTOs\TelegramAnswerDto;
 use App\DTOs\TelegramUpdateDto;
 use App\DTOs\TGTextMessageDto;
 use App\DTOs\Vk\VkUpdateDto;
+use App\DTOs\WhatsApp\WhatsAppUpdateDto;
 use App\Jobs\SendTelegramSimpleQueryJob;
 use App\Jobs\TopicCreateJob;
 use App\Logging\LokiLogger;
@@ -140,6 +141,14 @@ abstract class AbstractSendMessageJob implements ShouldQueue
 
             if ($this->updateDto instanceof VkUpdateDto) {
                 return new SendVkTelegramMessageJob(
+                    $this->botUserId,
+                    $this->updateDto,
+                    $this->queryParams,
+                );
+            }
+
+            if ($this->updateDto instanceof WhatsAppUpdateDto) {
+                return new SendWhatsAppTelegramMessageJob(
                     $this->botUserId,
                     $this->updateDto,
                     $this->queryParams,
