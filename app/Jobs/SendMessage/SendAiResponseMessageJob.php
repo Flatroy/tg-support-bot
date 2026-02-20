@@ -4,10 +4,10 @@ namespace App\Jobs\SendMessage;
 
 use App\DTOs\Ai\AiRequestDto;
 use App\DTOs\TelegramUpdateDto;
-use Illuminate\Support\Facades\Log;
 use App\Models\BotUser;
 use App\Services\Ai\AiAssistantService;
 use App\TelegramBot\TelegramMethods;
+use Illuminate\Support\Facades\Log;
 
 class SendAiResponseMessageJob extends AbstractSendMessageJob
 {

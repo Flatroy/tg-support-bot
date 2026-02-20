@@ -5,10 +5,10 @@ namespace App\Services\External;
 use App\DTOs\External\ExternalMessageDto;
 use App\DTOs\TGTextMessageDto;
 use App\Jobs\SendMessage\SendExternalTelegramMessageJob;
-use Illuminate\Support\Facades\Log;
 use App\Models\BotUser;
 use App\Models\ExternalUser;
 use App\Models\Message;
+use Illuminate\Support\Facades\Log;
 use phpDocumentor\Reflection\Exception;
 
 class ExternalEditedMessageService extends ExternalService

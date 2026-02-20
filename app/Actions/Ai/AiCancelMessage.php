@@ -5,9 +5,9 @@ namespace App\Actions\Ai;
 use App\DTOs\TelegramUpdateDto;
 use App\DTOs\TGTextMessageDto;
 use App\Jobs\SendMessage\SendTelegramMessageJob;
-use Illuminate\Support\Facades\Log;
 use App\Models\AiMessage;
 use App\Models\BotUser;
+use Illuminate\Support\Facades\Log;
 use phpDocumentor\Reflection\Exception;
 
 class AiCancelMessage extends AiAction

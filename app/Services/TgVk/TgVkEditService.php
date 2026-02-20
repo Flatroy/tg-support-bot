@@ -5,9 +5,9 @@ namespace App\Services\TgVk;
 use App\DTOs\TelegramUpdateDto;
 use App\DTOs\Vk\VkTextMessageDto;
 use App\Jobs\SendMessage\SendVkMessageJob;
-use Illuminate\Support\Facades\Log;
 use App\Models\Message;
 use App\Services\ActionService\Edit\FromTgEditService;
+use Illuminate\Support\Facades\Log;
 
 class TgVkEditService extends FromTgEditService
 {

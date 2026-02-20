@@ -10,10 +10,10 @@ use App\DTOs\Vk\VkAnswerDto;
 use App\DTOs\Vk\VkTextMessageDto;
 use App\Helpers\TelegramHelper;
 use App\Jobs\SendMessage\SendVkMessageJob;
-use Illuminate\Support\Facades\Log;
 use App\Services\ActionService\Send\FromTgMessageService;
 use App\Services\Button\ButtonParser;
 use App\Services\Button\KeyboardBuilder;
+use Illuminate\Support\Facades\Log;
 
 class TgVkMessageService extends FromTgMessageService
 {

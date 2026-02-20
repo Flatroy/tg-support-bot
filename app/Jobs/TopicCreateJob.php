@@ -7,6 +7,7 @@ use App\Actions\Telegram\SendContactMessage;
 use App\Models\BotUser;
 use App\Models\ExternalUser;
 use App\TelegramBot\TelegramMethods;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -96,7 +97,7 @@ class TopicCreateJob implements ShouldQueue
 
             $templateTopicName = config('traffic_source.settings.telegram.template_topic_name');
             if (empty($templateTopicName)) {
-                throw new \Exception('Template not found');
+                throw new Exception('Template not found');
             }
 
             if (preg_match('/(\{platform})/', $templateTopicName)) {
@@ -105,13 +106,13 @@ class TopicCreateJob implements ShouldQueue
 
             $nameParts = $this->getPartsGenerateName($botUser->chat_id);
             if (empty($nameParts)) {
-                throw new \Exception('Name parts not found');
+                throw new Exception('Name parts not found');
             }
 
             // parsing template
             preg_match_all('/{([^}]+)}/', $templateTopicName, $matches);
             if (empty($matches[1])) {
-                throw new \Exception('Params template topic name not found');
+                throw new Exception('Params template topic name not found');
             }
 
             $paramsParts = array_combine($matches[0], $matches[1]);
@@ -119,7 +120,7 @@ class TopicCreateJob implements ShouldQueue
             $topicName = $templateTopicName;
             foreach ($paramsParts as $key => $param) {
                 if (empty($nameParts[$param])) {
-                    throw new \Exception('Params template topic name not found');
+                    throw new Exception('Params template topic name not found');
                 }
                 $topicName = str_replace($key, $nameParts[$param], $topicName);
             }
@@ -137,19 +138,19 @@ class TopicCreateJob implements ShouldQueue
      *
      * @return array
      *
-     * @throws \Exception
+     * @throws Exception
      */
     protected function getPartsGenerateName(int $chatId): array
     {
         try {
             $chatDataQuery = GetChat::execute($chatId);
             if (!$chatDataQuery->ok) {
-                throw new \Exception('ChatData not found');
+                throw new Exception('ChatData not found');
             }
 
             $chatData = $chatDataQuery->rawData['result'];
             if (empty($chatData)) {
-                throw new \Exception('ChatData not found');
+                throw new Exception('ChatData not found');
             }
 
             $neededKeys = [

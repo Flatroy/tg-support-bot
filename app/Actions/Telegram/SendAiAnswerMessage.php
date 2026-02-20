@@ -4,9 +4,9 @@ namespace App\Actions\Telegram;
 
 use App\DTOs\TelegramUpdateDto;
 use App\Jobs\SendMessage\SendAiResponseMessageJob;
-use Illuminate\Support\Facades\Log;
 use App\Models\BotUser;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class SendAiAnswerMessage
 {

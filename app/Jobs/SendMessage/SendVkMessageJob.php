@@ -4,10 +4,10 @@ namespace App\Jobs\SendMessage;
 
 use App\DTOs\TelegramUpdateDto;
 use App\DTOs\Vk\VkTextMessageDto;
-use Illuminate\Support\Facades\Log;
 use App\Models\BotUser;
 use App\Models\Message;
 use App\VkBot\VkMethods;
+use Illuminate\Support\Facades\Log;
 
 class SendVkMessageJob extends AbstractSendMessageJob
 {

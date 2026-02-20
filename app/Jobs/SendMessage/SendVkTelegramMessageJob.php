@@ -6,10 +6,10 @@ use App\DTOs\TelegramAnswerDto;
 use App\DTOs\TGTextMessageDto;
 use App\DTOs\Vk\VkUpdateDto;
 use App\Jobs\TopicCreateJob;
-use Illuminate\Support\Facades\Log;
 use App\Models\BotUser;
 use App\Models\Message;
 use App\TelegramBot\TelegramMethods;
+use Illuminate\Support\Facades\Log;
 
 class SendVkTelegramMessageJob extends AbstractSendMessageJob
 {

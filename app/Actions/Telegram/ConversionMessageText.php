@@ -115,6 +115,7 @@ class ConversionMessageText
      * Get the opening MarkdownV2 marker for an entity.
      *
      * @param array $entity
+     *
      * @return string
      */
     private static function getOpenMarker(array $entity): string
@@ -137,6 +138,7 @@ class ConversionMessageText
      * Get the closing MarkdownV2 marker for an entity.
      *
      * @param array $entity
+     *
      * @return string
      */
     private static function getCloseMarker(array $entity): string
@@ -158,6 +160,7 @@ class ConversionMessageText
      * Escape special characters for MarkdownV2.
      *
      * @param string $text
+     *
      * @return string
      */
     private static function escapeMarkdownV2(string $text): string
@@ -169,6 +172,7 @@ class ConversionMessageText
      * Escape characters inside code/pre blocks.
      *
      * @param string $text
+     *
      * @return string
      */
     private static function escapeCode(string $text): string
@@ -180,6 +184,7 @@ class ConversionMessageText
      * Escape characters inside URL part of text_link.
      *
      * @param string $url
+     *
      * @return string
      */
     private static function escapeUrl(string $url): string

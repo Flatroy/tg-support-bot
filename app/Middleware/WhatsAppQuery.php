@@ -5,7 +5,6 @@ namespace App\Middleware;
 use App\Logging\LokiLogger;
 use Closure;
 use Illuminate\Http\Request;
-use Mockery\Exception;
 use Symfony\Component\HttpFoundation\Response;
 
 class WhatsAppQuery

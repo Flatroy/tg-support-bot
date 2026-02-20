@@ -5,12 +5,12 @@ namespace App\Jobs;
 use App\DTOs\TGTextMessageDto;
 use App\Jobs\SendMessage\AbstractSendMessageJob;
 use App\Models\BotUser;
-use Illuminate\Support\Facades\Log;
 use App\TelegramBot\TelegramMethods;
 use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class SendTelegramSimpleQueryJob extends AbstractSendMessageJob
 {

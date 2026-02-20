@@ -7,11 +7,11 @@ use App\DTOs\TelegramAnswerDto;
 use App\DTOs\TelegramUpdateDto;
 use App\DTOs\TGTextMessageDto;
 use App\Helpers\AiHelper;
-use Illuminate\Support\Facades\Log;
 use App\Models\AiMessage;
 use App\Models\BotUser;
 use App\Services\Ai\AiAssistantService;
 use App\TelegramBot\TelegramMethods;
+use Illuminate\Support\Facades\Log;
 
 class SendAiTelegramMessageJob extends AbstractSendMessageJob
 {

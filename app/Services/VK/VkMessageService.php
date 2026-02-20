@@ -5,9 +5,9 @@ namespace App\Services\VK;
 use App\DTOs\TGTextMessageDto;
 use App\DTOs\Vk\VkUpdateDto;
 use App\Jobs\SendMessage\SendVkTelegramMessageJob;
-use Illuminate\Support\Facades\Log;
 use App\Models\BotUser;
 use App\Services\ActionService\Send\ToTgMessageService;
+use Illuminate\Support\Facades\Log;
 
 class VkMessageService extends ToTgMessageService
 {

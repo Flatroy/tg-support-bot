@@ -7,7 +7,7 @@ use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\File;
 use Illuminate\View\View;
-use Mockery\Exception;
+use Exception;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SwaggerController
