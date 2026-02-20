@@ -12,6 +12,7 @@ use App\WhatsAppBot\WhatsAppMethods;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class WhatsAppBotController
 {
@@ -44,6 +45,9 @@ class WhatsAppBotController
      */
     public function bot_query(Request $request): Response
     {
+        if (config('app.debug')) {
+            Log::debug('Received new WhatsApp Business API Webhook event: ' . $request->getContent());
+        }
         $dataHook = WhatsAppUpdateDto::fromRequest($request);
         if (empty($dataHook)) {
             return response('ok', 200);
@@ -64,6 +68,10 @@ class WhatsAppBotController
         WhatsAppMethods::markAsRead($dataHook->messageId);
 
         $botUser = BotUser::getUserByChatId($dataHook->from, 'whatsapp');
+
+        if ($botUser === null) {
+            abort(502, 'Error');
+        }
 
         if ($botUser->isBanned()) {
             $this->sendBannedMessage($botUser);
