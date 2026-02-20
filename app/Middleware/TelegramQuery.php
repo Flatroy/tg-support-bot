@@ -5,7 +5,6 @@ namespace App\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Mockery\Exception;
 use Symfony\Component\HttpFoundation\Response;
 
 class TelegramQuery
