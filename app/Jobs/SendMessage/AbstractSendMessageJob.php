@@ -11,8 +11,8 @@ use App\DTOs\Vk\VkUpdateDto;
 use App\DTOs\WhatsApp\WhatsAppUpdateDto;
 use App\Jobs\SendTelegramSimpleQueryJob;
 use App\Jobs\TopicCreateJob;
-use App\Logging\LokiLogger;
 use App\Models\BotUser;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -75,20 +75,20 @@ abstract class AbstractSendMessageJob implements ShouldQueue
     {
         if ($response->response_code === 429) {
             $retryAfter = $response->parameters->retry_after ?? 3;
-            (new LokiLogger())->log('warning', "429 Too Many Requests. Replay {$retryAfter}");
+            Log::channel('loki')->warning("429 Too Many Requests. Replay {$retryAfter}");
             $this->release($retryAfter);
             return;
         }
 
         if ($response->response_code === 400 && $response->type_error === 'MARKDOWN_ERROR') {
-            (new LokiLogger())->log('warning', 'MARKDOWN_ERROR -> switching parse_mode to HTML');
+            Log::channel('loki')->warning("MARKDOWN_ERROR -> switching parse_mode to HTML");
             $this->queryParams->parse_mode = 'html';
             $this->release(1);
             return;
         }
 
         if ($response->response_code === 400 && in_array($response->type_error, ['TOPIC_NOT_FOUND', 'TOPIC_DELETED', 'TOPIC_ID_INVALID'])) {
-            (new LokiLogger())->log('warning', 'TOPIC_NOT_FOUND/TOPIC_DELETED -> creating new topic');
+            Log::channel('loki')->warning("TOPIC_NOT_FOUND/TOPIC_DELETED -> creating new topic");
 
             $retryJob = $this->getRetryJobInstance();
             if ($retryJob !== null) {
@@ -105,14 +105,12 @@ abstract class AbstractSendMessageJob implements ShouldQueue
         }
 
         if ($response->response_code === 403) {
-            (new LokiLogger())->log('warning', '403 - user blocked the bot');
+            Log::channel('loki')->warning("403 - user blocked the bot");
             BanMessage::execute($this->botUserId, $this->updateDto);
             return;
         }
 
-        (new LokiLogger())->log('error', [
-            'response' => (array)$response,
-        ]);
+        Log::channel('loki')->error('Unknown error', ['response' => (array)$response]);
     }
 
     /**

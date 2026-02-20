@@ -4,8 +4,8 @@ namespace App\Jobs;
 
 use App\DTOs\TGTextMessageDto;
 use App\Jobs\SendMessage\AbstractSendMessageJob;
-use App\Logging\LokiLogger;
 use App\Models\BotUser;
+use Illuminate\Support\Facades\Log;
 use App\TelegramBot\TelegramMethods;
 use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -54,7 +54,7 @@ class SendTelegramSimpleQueryJob extends AbstractSendMessageJob
                 $this->telegramResponseHandler($response);
             }
         } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+            Log::channel('loki')->log($e->getCode() === 1 ? 'warning' : 'error', $e->getMessage(), ['file' => $e->getFile(), 'line' => $e->getLine()]);
         }
     }
 
