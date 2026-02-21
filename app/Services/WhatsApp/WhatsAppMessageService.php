@@ -210,9 +210,15 @@ class WhatsAppMessageService extends ToTgMessageService
             return null;
         }
 
-        $mediaUrl = WhatsAppMethods::getMediaUrl($mediaId);
-        if (empty($mediaUrl)) {
-            return null;
+        // If mediaId is already a URL (WAHA provides full URLs), use it directly
+        // Otherwise, get the URL from the provider (Cloud API needs to fetch URL from ID)
+        if (filter_var($mediaId, FILTER_VALIDATE_URL)) {
+            $mediaUrl = $mediaId;
+        } else {
+            $mediaUrl = WhatsAppMethods::getMediaUrl($mediaId);
+            if (empty($mediaUrl)) {
+                return null;
+            }
         }
 
         return WhatsAppMethods::downloadMedia($mediaUrl, $filename);

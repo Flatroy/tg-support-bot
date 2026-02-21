@@ -54,6 +54,7 @@ Route::group([
     Route::post('bot', [WahaBotController::class, 'bot_query']);
     Route::post('validate', [WahaValidationController::class, 'validateConnection']);
     Route::get('health', [WahaValidationController::class, 'health']);
+    Route::post('test-image', [WahaValidationController::class, 'testImage']);
 });
 
 Route::group([
