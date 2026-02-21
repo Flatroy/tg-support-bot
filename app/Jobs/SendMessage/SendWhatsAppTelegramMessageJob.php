@@ -6,11 +6,11 @@ use App\DTOs\TelegramAnswerDto;
 use App\DTOs\TGTextMessageDto;
 use App\DTOs\WhatsApp\WhatsAppUpdateDto;
 use App\Jobs\TopicCreateJob;
-use App\Logging\LokiLogger;
 use App\Models\BotUser;
 use App\Models\Message;
 use App\Models\WhatsappMessage;
 use App\TelegramBot\TelegramMethods;
+use Illuminate\Support\Facades\Log;
 
 class SendWhatsAppTelegramMessageJob extends AbstractSendMessageJob
 {
@@ -98,8 +98,8 @@ class SendWhatsAppTelegramMessageJob extends AbstractSendMessageJob
             } else {
                 $this->telegramResponseHandler($response);
             }
-        } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+        } catch (\Throwable $exception) {
+            Log::channel('loki')->log($exception->getCode() === 1 ? 'warning' : 'error', $exception->getMessage(), ['file' => $exception->getFile(), 'line' => $exception->getLine()]);
         }
     }
 

@@ -8,11 +8,11 @@ use App\DTOs\TelegramUpdateDto;
 use App\DTOs\WhatsApp\WhatsAppTextMessageDto;
 use App\Helpers\TelegramHelper;
 use App\Jobs\SendMessage\SendWhatsAppMessageJob;
-use App\Logging\LokiLogger;
 use App\Services\ActionService\Send\FromTgMessageService;
 use App\Services\Button\ButtonParser;
 use App\WhatsAppBot\WhatsAppMethods;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class TgWhatsAppMessageService extends FromTgMessageService
 {
@@ -48,8 +48,8 @@ class TgWhatsAppMessageService extends FromTgMessageService
             }
 
             echo 'ok';
-        } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+        } catch (\Throwable $exception) {
+            Log::channel('loki')->log($exception->getCode() === 1 ? 'warning' : 'error', $exception->getMessage(), ['file' => $exception->getFile(), 'line' => $exception->getLine()]);
         }
     }
 
@@ -265,8 +265,8 @@ class TgWhatsAppMessageService extends FromTgMessageService
             file_put_contents($tempPath, $response->body());
 
             return $tempPath;
-        } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+        } catch (\Throwable $exception) {
+            Log::channel('loki')->log($exception->getCode() === 1 ? 'warning' : 'error', $exception->getMessage(), ['file' => $exception->getFile(), 'line' => $exception->getLine()]);
 
             return null;
         }

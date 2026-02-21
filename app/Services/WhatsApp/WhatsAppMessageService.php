@@ -7,10 +7,10 @@ namespace App\Services\WhatsApp;
 use App\DTOs\TGTextMessageDto;
 use App\DTOs\WhatsApp\WhatsAppUpdateDto;
 use App\Jobs\SendMessage\SendWhatsAppTelegramMessageJob;
-use App\Logging\LokiLogger;
 use App\Models\BotUser;
 use App\Services\ActionService\Send\ToTgMessageService;
 use App\WhatsAppBot\WhatsAppMethods;
+use Illuminate\Support\Facades\Log;
 
 class WhatsAppMessageService extends ToTgMessageService
 {
@@ -46,8 +46,8 @@ class WhatsAppMessageService extends ToTgMessageService
                 'video' => $this->sendDocument(),
                 default => null,
             };
-        } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+        } catch (\Throwable $exception) {
+            Log::channel('loki')->log($exception->getCode() === 1 ? 'warning' : 'error', $exception->getMessage(), ['file' => $exception->getFile(), 'line' => $exception->getLine()]);
         }
     }
 

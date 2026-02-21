@@ -6,11 +6,15 @@ namespace App\DTOs\WhatsApp;
 
 use Illuminate\Http\Request;
 
-/**
- * DTO for WAHA (WhatsApp HTTP API) webhook updates.
- */
 readonly class WahaUpdateDto
 {
+    /**
+     * @param array<string, mixed>|null                              $location
+     * @param array<int, string>|null                                $contacts
+     * @param array<string, mixed>|null                              $reaction
+     * @param array{ack: int|string|null, ackName: string|null}|null $status
+     * @param array<string, mixed>                                   $rawData
+     */
     public function __construct(
         public string $messageId,
         public string $from,
@@ -29,78 +33,49 @@ readonly class WahaUpdateDto
     ) {
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return self|null
-     */
     public static function fromRequest(Request $request): ?self
     {
         try {
+            /** @var array<string, mixed> $data */
             $data = $request->all();
 
-            // Check if it's a WAHA message event
-            if (isset($data['event']) && $data['event'] === 'message') {
-                return self::fromMessageEvent($data['payload'] ?? [], $data);
+            if (($data['event'] ?? null) === 'message') {
+                return self::fromMessageEvent(self::arrayValue($data, 'payload'), $data);
             }
 
-            // Check if it's a WAHA status event
-            if (isset($data['event']) && $data['event'] === 'message.ack') {
-                return self::fromAckEvent($data['payload'] ?? [], $data);
+            if (($data['event'] ?? null) === 'message.ack') {
+                return self::fromAckEvent(self::arrayValue($data, 'payload'), $data);
             }
 
-            // Check if it's a raw WAHA message format (direct payload)
-            if (isset($data['id']) && isset($data['from']) && isset($data['body'])) {
+            if (isset($data['id'], $data['from'], $data['body'])) {
                 return self::fromRawMessage($data);
             }
 
             return null;
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return null;
         }
     }
 
     /**
-     * @param array $payload
-     * @param array $rawData
-     *
-     * @return self
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $rawData
      */
     private static function fromMessageEvent(array $payload, array $rawData): self
     {
-        $type = self::determineType($payload);
-        $mediaData = self::extractMediaData($payload);
-
-        return new self(
-            messageId: $payload['id'] ?? '',
-            from: $payload['from'] ?? '',
-            chatId: $payload['from'] ?? '',
-            type: $type,
-            text: $payload['body'] ?? null,
-            mediaId: $mediaData['id'],
-            mimeType: $mediaData['mimeType'],
-            filename: $mediaData['filename'],
-            caption: $mediaData['caption'],
-            location: $payload['location'] ?? null,
-            contacts: $payload['vCards'] ?? null,
-            reaction: $payload['reaction'] ?? null,
-            status: null,
-            rawData: $rawData,
-        );
+        return self::fromPayload($payload, $rawData);
     }
 
     /**
-     * @param array $payload
-     * @param array $rawData
-     *
-     * @return self
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $rawData
      */
     private static function fromAckEvent(array $payload, array $rawData): self
     {
         return new self(
-            messageId: $payload['id'] ?? '',
-            from: $payload['to'] ?? '',
-            chatId: $payload['to'] ?? '',
+            messageId: (string) ($payload['id'] ?? ''),
+            from: (string) ($payload['to'] ?? ''),
+            chatId: (string) ($payload['to'] ?? ''),
             type: 'status',
             text: null,
             mediaId: null,
@@ -112,57 +87,62 @@ readonly class WahaUpdateDto
             reaction: null,
             status: [
                 'ack' => $payload['ack'] ?? null,
-                'ackName' => $payload['ackName'] ?? null,
+                'ackName' => isset($payload['ackName']) ? (string) $payload['ackName'] : null,
             ],
             rawData: $rawData,
         );
     }
 
     /**
-     * @param array $data
-     *
-     * @return self
+     * @param array<string, mixed> $data
      */
     private static function fromRawMessage(array $data): self
     {
-        $type = self::determineType($data);
-        $mediaData = self::extractMediaData($data);
+        return self::fromPayload($data, $data);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $rawData
+     */
+    private static function fromPayload(array $payload, array $rawData): self
+    {
+        $mediaData = self::extractMediaData($payload);
 
         return new self(
-            messageId: $data['id'] ?? '',
-            from: $data['from'] ?? '',
-            chatId: $data['from'] ?? '',
-            type: $type,
-            text: $data['body'] ?? null,
+            messageId: (string) ($payload['id'] ?? ''),
+            from: (string) ($payload['from'] ?? ''),
+            chatId: (string) ($payload['from'] ?? ''),
+            type: self::determineType($payload),
+            text: isset($payload['body']) ? (string) $payload['body'] : null,
             mediaId: $mediaData['id'],
             mimeType: $mediaData['mimeType'],
             filename: $mediaData['filename'],
             caption: $mediaData['caption'],
-            location: $data['location'] ?? null,
-            contacts: $data['vCards'] ?? null,
-            reaction: $data['reaction'] ?? null,
+            location: self::nullableArrayValue($payload, 'location'),
+            contacts: self::nullableStringListValue($payload, 'vCards'),
+            reaction: self::nullableArrayValue($payload, 'reaction'),
             status: null,
-            rawData: $data,
+            rawData: $rawData,
         );
     }
 
     /**
-     * @param array $payload
-     *
-     * @return string
+     * @param array<string, mixed> $payload
      */
     private static function determineType(array $payload): string
     {
-        if (!empty($payload['location'])) {
+        if (! empty($payload['location'])) {
             return 'location';
         }
 
-        if (!empty($payload['vCards'])) {
+        if (! empty($payload['vCards'])) {
             return 'contacts';
         }
 
-        if (!empty($payload['hasMedia'])) {
-            $mime = $payload['media']['mimetype'] ?? '';
+        if (! empty($payload['hasMedia'])) {
+            $media = self::arrayValue($payload, 'media');
+            $mime = (string) ($media['mimetype'] ?? '');
 
             return match (true) {
                 str_starts_with($mime, 'image/') => 'image',
@@ -172,7 +152,7 @@ readonly class WahaUpdateDto
             };
         }
 
-        if (!empty($payload['reaction'])) {
+        if (! empty($payload['reaction'])) {
             return 'reaction';
         }
 
@@ -180,23 +160,65 @@ readonly class WahaUpdateDto
     }
 
     /**
-     * @param array $payload
+     * @param array<string, mixed> $payload
      *
-     * @return array
+     * @return array{id: ?string, mimeType: ?string, filename: ?string, caption: ?string}
      */
     private static function extractMediaData(array $payload): array
     {
-        if (empty($payload['hasMedia']) || empty($payload['media'])) {
+        if (empty($payload['hasMedia'])) {
             return ['id' => null, 'mimeType' => null, 'filename' => null, 'caption' => null];
         }
 
-        $media = $payload['media'];
+        $media = self::arrayValue($payload, 'media');
 
         return [
-            'id' => $media['id'] ?? null,
-            'mimeType' => $media['mimetype'] ?? null,
-            'filename' => $media['filename'] ?? null,
-            'caption' => $payload['body'] ?? null,
+            'id' => isset($media['id']) ? (string) $media['id'] : null,
+            'mimeType' => isset($media['mimetype']) ? (string) $media['mimetype'] : null,
+            'filename' => isset($media['filename']) ? (string) $media['filename'] : null,
+            'caption' => isset($payload['body']) ? (string) $payload['body'] : null,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private static function arrayValue(array $data, string $key): array
+    {
+        $value = $data[$key] ?? null;
+
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function nullableArrayValue(array $data, string $key): ?array
+    {
+        $value = $data[$key] ?? null;
+
+        return is_array($value) ? $value : null;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<int, string>|null
+     */
+    private static function nullableStringListValue(array $data, string $key): ?array
+    {
+        $value = $data[$key] ?? null;
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $items = array_values(array_filter($value, static fn (mixed $item): bool => is_string($item)));
+
+        return $items === [] ? null : $items;
     }
 }

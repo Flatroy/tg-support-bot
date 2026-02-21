@@ -5,9 +5,9 @@ namespace App\Services\TgWhatsApp;
 use App\DTOs\TelegramUpdateDto;
 use App\DTOs\WhatsApp\WhatsAppTextMessageDto;
 use App\Jobs\SendMessage\SendWhatsAppMessageJob;
-use App\Logging\LokiLogger;
 use App\Models\Message;
 use App\Services\ActionService\Edit\FromTgEditService;
+use Illuminate\Support\Facades\Log;
 
 class TgWhatsAppEditService extends FromTgEditService
 {
@@ -36,8 +36,8 @@ class TgWhatsAppEditService extends FromTgEditService
             }
 
             echo 'ok';
-        } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+        } catch (\Throwable $exception) {
+            Log::channel('loki')->log($exception->getCode() === 1 ? 'warning' : 'error', $exception->getMessage(), ['file' => $exception->getFile(), 'line' => $exception->getLine()]);
         }
     }
 

@@ -12,21 +12,12 @@ class WahaUpdateDtoTest extends TestCase
 {
     public function test_from_request_with_text_message(): void
     {
-        $payload = [
-            'event' => 'message',
-            'payload' => [
-                'id' => 'false_12345678901@c.us_ABCDEF',
-                'timestamp' => time(),
-                'from' => '12345678901@c.us',
-                'to' => 'me@c.us',
-                'body' => 'Hello from WAHA',
-                'hasMedia' => false,
-                'type' => 'chat',
-            ],
-        ];
-
-        $request = Request::create('/api/waha/bot', 'POST', $payload);
-        $dto = WahaUpdateDto::fromRequest($request);
+        $dto = WahaUpdateDto::fromRequest($this->messageRequest([
+            'id' => 'false_12345678901@c.us_ABCDEF',
+            'body' => 'Hello from WAHA',
+            'hasMedia' => false,
+            'type' => 'chat',
+        ]));
 
         $this->assertNotNull($dto);
         $this->assertEquals('false_12345678901@c.us_ABCDEF', $dto->messageId);
@@ -38,26 +29,17 @@ class WahaUpdateDtoTest extends TestCase
 
     public function test_from_request_with_image_message(): void
     {
-        $payload = [
-            'event' => 'message',
-            'payload' => [
-                'id' => 'false_12345678901@c.us_IMAGE123',
-                'timestamp' => time(),
-                'from' => '12345678901@c.us',
-                'to' => 'me@c.us',
-                'body' => 'Check this image',
-                'hasMedia' => true,
-                'media' => [
-                    'id' => 'media_12345.jpg',
-                    'mimetype' => 'image/jpeg',
-                    'filename' => 'photo.jpg',
-                ],
-                'type' => 'image',
+        $dto = WahaUpdateDto::fromRequest($this->messageRequest([
+            'id' => 'false_12345678901@c.us_IMAGE123',
+            'body' => 'Check this image',
+            'hasMedia' => true,
+            'media' => [
+                'id' => 'media_12345.jpg',
+                'mimetype' => 'image/jpeg',
+                'filename' => 'photo.jpg',
             ],
-        ];
-
-        $request = Request::create('/api/waha/bot', 'POST', $payload);
-        $dto = WahaUpdateDto::fromRequest($request);
+            'type' => 'image',
+        ]));
 
         $this->assertNotNull($dto);
         $this->assertEquals('image', $dto->type);
@@ -69,24 +51,15 @@ class WahaUpdateDtoTest extends TestCase
 
     public function test_from_request_with_location(): void
     {
-        $payload = [
-            'event' => 'message',
-            'payload' => [
-                'id' => 'false_12345678901@c.us_LOC123',
-                'timestamp' => time(),
-                'from' => '12345678901@c.us',
-                'to' => 'me@c.us',
-                'hasMedia' => false,
-                'location' => [
-                    'latitude' => 55.7558,
-                    'longitude' => 37.6173,
-                    'description' => 'Moscow',
-                ],
+        $dto = WahaUpdateDto::fromRequest($this->messageRequest([
+            'id' => 'false_12345678901@c.us_LOC123',
+            'hasMedia' => false,
+            'location' => [
+                'latitude' => 55.7558,
+                'longitude' => 37.6173,
+                'description' => 'Moscow',
             ],
-        ];
-
-        $request = Request::create('/api/waha/bot', 'POST', $payload);
-        $dto = WahaUpdateDto::fromRequest($request);
+        ]));
 
         $this->assertNotNull($dto);
         $this->assertEquals('location', $dto->type);
@@ -97,22 +70,13 @@ class WahaUpdateDtoTest extends TestCase
 
     public function test_from_request_with_contacts(): void
     {
-        $payload = [
-            'event' => 'message',
-            'payload' => [
-                'id' => 'false_12345678901@c.us_CONTACT123',
-                'timestamp' => time(),
-                'from' => '12345678901@c.us',
-                'to' => 'me@c.us',
-                'hasMedia' => false,
-                'vCards' => [
-                    'BEGIN:VCARD\nVERSION:3.0\nFN:John Doe\nTEL:+1234567890\nEND:VCARD',
-                ],
+        $dto = WahaUpdateDto::fromRequest($this->messageRequest([
+            'id' => 'false_12345678901@c.us_CONTACT123',
+            'hasMedia' => false,
+            'vCards' => [
+                'BEGIN:VCARD\nVERSION:3.0\nFN:John Doe\nTEL:+1234567890\nEND:VCARD',
             ],
-        ];
-
-        $request = Request::create('/api/waha/bot', 'POST', $payload);
-        $dto = WahaUpdateDto::fromRequest($request);
+        ]));
 
         $this->assertNotNull($dto);
         $this->assertEquals('contacts', $dto->type);
@@ -122,7 +86,7 @@ class WahaUpdateDtoTest extends TestCase
 
     public function test_from_request_with_ack_event(): void
     {
-        $payload = [
+        $request = Request::create('/api/waha/bot', 'POST', [
             'event' => 'message.ack',
             'payload' => [
                 'id' => 'false_12345678901@c.us_ABCDEF',
@@ -130,9 +94,8 @@ class WahaUpdateDtoTest extends TestCase
                 'ack' => 3,
                 'ackName' => 'READ',
             ],
-        ];
+        ]);
 
-        $request = Request::create('/api/waha/bot', 'POST', $payload);
         $dto = WahaUpdateDto::fromRequest($request);
 
         $this->assertNotNull($dto);
@@ -144,16 +107,15 @@ class WahaUpdateDtoTest extends TestCase
 
     public function test_from_request_with_raw_format(): void
     {
-        $payload = [
+        $request = Request::create('/api/waha/bot', 'POST', [
             'id' => 'false_12345678901@c.us_RAW123',
             'timestamp' => time(),
             'from' => '12345678901@c.us',
             'to' => 'me@c.us',
             'body' => 'Raw format message',
             'hasMedia' => false,
-        ];
+        ]);
 
-        $request = Request::create('/api/waha/bot', 'POST', $payload);
         $dto = WahaUpdateDto::fromRequest($request);
 
         $this->assertNotNull($dto);
@@ -163,11 +125,7 @@ class WahaUpdateDtoTest extends TestCase
 
     public function test_from_request_returns_null_for_invalid_data(): void
     {
-        $payload = [
-            'some_random_field' => 'value',
-        ];
-
-        $request = Request::create('/api/waha/bot', 'POST', $payload);
+        $request = Request::create('/api/waha/bot', 'POST', ['some_random_field' => 'value']);
         $dto = WahaUpdateDto::fromRequest($request);
 
         $this->assertNull($dto);
@@ -175,22 +133,14 @@ class WahaUpdateDtoTest extends TestCase
 
     public function test_audio_message_type(): void
     {
-        $payload = [
-            'event' => 'message',
-            'payload' => [
-                'id' => 'false_12345678901@c.us_AUDIO123',
-                'timestamp' => time(),
-                'from' => '12345678901@c.us',
-                'hasMedia' => true,
-                'media' => [
-                    'id' => 'media_voice.oga',
-                    'mimetype' => 'audio/ogg; codecs=opus',
-                ],
+        $dto = WahaUpdateDto::fromRequest($this->messageRequest([
+            'id' => 'false_12345678901@c.us_AUDIO123',
+            'hasMedia' => true,
+            'media' => [
+                'id' => 'media_voice.oga',
+                'mimetype' => 'audio/ogg; codecs=opus',
             ],
-        ];
-
-        $request = Request::create('/api/waha/bot', 'POST', $payload);
-        $dto = WahaUpdateDto::fromRequest($request);
+        ]));
 
         $this->assertNotNull($dto);
         $this->assertEquals('audio', $dto->type);
@@ -198,24 +148,34 @@ class WahaUpdateDtoTest extends TestCase
 
     public function test_video_message_type(): void
     {
-        $payload = [
-            'event' => 'message',
-            'payload' => [
-                'id' => 'false_12345678901@c.us_VIDEO123',
-                'timestamp' => time(),
-                'from' => '12345678901@c.us',
-                'hasMedia' => true,
-                'media' => [
-                    'id' => 'media_video.mp4',
-                    'mimetype' => 'video/mp4',
-                ],
+        $dto = WahaUpdateDto::fromRequest($this->messageRequest([
+            'id' => 'false_12345678901@c.us_VIDEO123',
+            'hasMedia' => true,
+            'media' => [
+                'id' => 'media_video.mp4',
+                'mimetype' => 'video/mp4',
             ],
-        ];
-
-        $request = Request::create('/api/waha/bot', 'POST', $payload);
-        $dto = WahaUpdateDto::fromRequest($request);
+        ]));
 
         $this->assertNotNull($dto);
         $this->assertEquals('video', $dto->type);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function messageRequest(array $payload): \Illuminate\Http\Request
+    {
+        return Request::create('/api/waha/bot', 'POST', [
+            'event' => 'message',
+            'payload' => array_merge([
+                'id' => 'false_12345678901@c.us_TEST001',
+                'timestamp' => time(),
+                'from' => '12345678901@c.us',
+                'to' => 'me@c.us',
+                'body' => null,
+                'hasMedia' => false,
+            ], $payload),
+        ]);
     }
 }

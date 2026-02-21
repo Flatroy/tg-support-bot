@@ -7,157 +7,132 @@ namespace App\Services\WhatsApp\Providers;
 use App\Contracts\WhatsApp\WhatsAppProviderInterface;
 use App\DTOs\WhatsApp\WhatsAppAnswerDto;
 use App\DTOs\WhatsApp\WhatsAppTextMessageDto;
-use App\Logging\LokiLogger;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CloudApiProvider implements WhatsAppProviderInterface
 {
-    /**
-     * Send a message via WhatsApp Cloud API.
-     *
-     * @param WhatsAppTextMessageDto $dto
-     *
-     * @return WhatsAppAnswerDto
-     */
     public function sendMessage(WhatsAppTextMessageDto $dto): WhatsAppAnswerDto
     {
         try {
-            $payload = $dto->toApiPayload();
+            $response = Http::withToken($this->token())
+                ->post($this->getBaseUrl() . '/messages', $dto->toApiPayload());
 
-            $response = Http::withToken(config('traffic_source.settings.whatsapp.token'))
-                ->post($this->getBaseUrl() . '/messages', $payload);
+            /** @var array<string, mixed> $data */
+            $data = $response->json() ?? [];
+            $data['response_code'] = $response->status();
 
-            $resultQuery = $response->json() ?? [];
-            $resultQuery['response_code'] = $response->status();
-
-            return WhatsAppAnswerDto::fromData($resultQuery);
-        } catch (\Throwable $e) {
-            return WhatsAppAnswerDto::fromData([
-                'response_code' => 500,
-                'error' => ['message' => $e->getMessage(), 'type' => 'internal'],
-            ]);
+            return WhatsAppAnswerDto::fromData($data);
+        } catch (\Throwable $exception) {
+            return $this->errorResponse($exception);
         }
     }
 
-    /**
-     * Upload media to WhatsApp Cloud API.
-     *
-     * @param string $filePath
-     * @param string $mimeType
-     *
-     * @return string|null
-     */
     public function uploadMedia(string $filePath, string $mimeType): ?string
     {
         try {
-            $version = config('traffic_source.settings.whatsapp.api_version', 'v21.0');
-            $phoneNumberId = config('traffic_source.settings.whatsapp.phone_number_id');
-            $url = "https://graph.facebook.com/{$version}/{$phoneNumberId}/media";
-
-            $response = Http::withToken(config('traffic_source.settings.whatsapp.token'))
+            $response = Http::withToken($this->token())
                 ->attach('file', fopen($filePath, 'rb'), basename($filePath), ['Content-Type' => $mimeType])
-                ->post($url, [
+                ->post($this->getBaseUrl() . '/media', [
                     'messaging_product' => 'whatsapp',
                     'type' => $mimeType,
                 ]);
 
-            $data = $response->json();
-
-            return $data['id'] ?? null;
-        } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+            return $response->json('id');
+        } catch (\Throwable $exception) {
+            $this->logException($exception);
 
             return null;
         }
     }
 
-    /**
-     * Mark a message as read.
-     *
-     * @param string $messageId
-     *
-     * @return void
-     */
     public function markAsRead(string $messageId): void
     {
         try {
-            Http::withToken(config('traffic_source.settings.whatsapp.token'))
+            Http::withToken($this->token())
                 ->post($this->getBaseUrl() . '/messages', [
                     'messaging_product' => 'whatsapp',
                     'status' => 'read',
                     'message_id' => $messageId,
                 ]);
-        } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+        } catch (\Throwable $exception) {
+            $this->logException($exception);
         }
     }
 
-    /**
-     * Get the download URL for a media file.
-     *
-     * @param string $mediaId
-     *
-     * @return string|null
-     */
     public function getMediaUrl(string $mediaId): ?string
     {
         try {
-            $version = config('traffic_source.settings.whatsapp.api_version', 'v21.0');
-            $response = Http::withToken(config('traffic_source.settings.whatsapp.token'))
-                ->get("https://graph.facebook.com/{$version}/{$mediaId}");
-
-            return $response->json('url');
-        } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+            return Http::withToken($this->token())
+                ->get('https://graph.facebook.com/' . $this->version() . '/' . $mediaId)
+                ->json('url');
+        } catch (\Throwable $exception) {
+            $this->logException($exception);
 
             return null;
         }
     }
 
-    /**
-     * Download media from WhatsApp.
-     *
-     * @param string      $mediaUrl
-     * @param string|null $filename
-     *
-     * @return string|null
-     */
     public function downloadMedia(string $mediaUrl, ?string $filename = null): ?string
     {
         try {
-            $response = Http::withToken(config('traffic_source.settings.whatsapp.token'))
-                ->get($mediaUrl);
+            $response = Http::withToken($this->token())->get($mediaUrl);
 
-            if ($response->successful()) {
-                if ($filename) {
-                    $tempDir = sys_get_temp_dir() . '/' . uniqid('wa_');
-                    mkdir($tempDir);
-                    $tempPath = $tempDir . '/' . $filename;
-                } else {
-                    $contentType = $response->header('Content-Type');
-                    $extension = $this->getExtensionFromContentType($contentType);
-                    $tempPath = sys_get_temp_dir() . '/' . uniqid('wa_media_', true) . '.' . $extension;
-                }
-                file_put_contents($tempPath, $response->body());
-
-                return $tempPath;
+            if (! $response->successful()) {
+                return null;
             }
 
-            return null;
-        } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+            $filePath = $this->createTempPath($filename, $response->header('Content-Type'));
+            file_put_contents($filePath, $response->body());
+
+            return $filePath;
+        } catch (\Throwable $exception) {
+            $this->logException($exception);
 
             return null;
         }
     }
 
-    /**
-     * Get file extension from content type.
-     *
-     * @param string|null $contentType
-     *
-     * @return string
-     */
+    private function getBaseUrl(): string
+    {
+        return 'https://graph.facebook.com/' . $this->version() . '/' . config('traffic_source.settings.whatsapp.phone_number_id');
+    }
+
+    private function version(): string
+    {
+        return (string) config('traffic_source.settings.whatsapp.api_version', 'v21.0');
+    }
+
+    private function token(): string
+    {
+        return (string) config('traffic_source.settings.whatsapp.token');
+    }
+
+    private function logException(\Throwable $exception): void
+    {
+        Log::channel('loki')->log($exception->getCode() === 1 ? 'warning' : 'error', $exception->getMessage(), ['file' => $exception->getFile(), 'line' => $exception->getLine()]);
+    }
+
+    private function errorResponse(\Throwable $exception): WhatsAppAnswerDto
+    {
+        return WhatsAppAnswerDto::fromData([
+            'response_code' => 500,
+            'error' => ['message' => $exception->getMessage(), 'type' => 'internal'],
+        ]);
+    }
+
+    private function createTempPath(?string $filename, ?string $contentType): string
+    {
+        $tempDir = sys_get_temp_dir() . '/' . uniqid('wa_');
+        mkdir($tempDir);
+
+        if ($filename !== null && $filename !== '') {
+            return $tempDir . '/' . $filename;
+        }
+
+        return $tempDir . '/' . uniqid('wa_media_', true) . '.' . $this->getExtensionFromContentType($contentType);
+    }
+
     private function getExtensionFromContentType(?string $contentType): string
     {
         $mime = strtok($contentType ?? '', ';');
@@ -177,18 +152,5 @@ class CloudApiProvider implements WhatsAppProviderInterface
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
             default => 'bin',
         };
-    }
-
-    /**
-     * Get the base URL for Cloud API.
-     *
-     * @return string
-     */
-    private function getBaseUrl(): string
-    {
-        $version = config('traffic_source.settings.whatsapp.api_version', 'v21.0');
-        $phoneNumberId = config('traffic_source.settings.whatsapp.phone_number_id');
-
-        return "https://graph.facebook.com/{$version}/{$phoneNumberId}";
     }
 }

@@ -4,85 +4,73 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class WahaValidationController
 {
-    /**
-     * Run full WAHA validation with provided credentials.
-     *
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
     public function validateConnection(Request $request): JsonResponse
     {
-        $host = $request->input('host', config('traffic_source.settings.whatsapp.waha.base_url', 'http://localhost:3000'));
+        $host = (string) $request->input('host', config('traffic_source.settings.whatsapp.waha.base_url', 'http://localhost:3000'));
         $apiKey = $request->input('api_key', config('traffic_source.settings.whatsapp.waha.api_key'));
         $basicAuth = $request->input('basic_auth', config('traffic_source.settings.whatsapp.waha.basic_auth'));
-        $session = $request->input('session', 'default');
+        $session = (string) $request->input('session', 'default');
 
         $results = [
             'host' => $host,
             'session' => $session,
-            'api_key_configured' => !empty($apiKey),
-            'basic_auth_configured' => !empty($basicAuth),
+            'api_key_configured' => ! empty($apiKey),
+            'basic_auth_configured' => ! empty($basicAuth),
             'tests' => [],
         ];
 
-        // Test 1: Connectivity
         try {
-            $headers = $this->buildHeaders($apiKey, $basicAuth);
-
-            $response = Http::withHeaders($headers)
+            $response = $this->http($apiKey, $basicAuth)
                 ->timeout(10)
-                ->get(rtrim($host, '/') . '/api/server/status');
+                ->get($this->url($host, '/api/server/status'));
 
             $results['tests']['connectivity'] = [
                 'passed' => $response->successful(),
                 'status' => $response->status(),
                 'data' => $response->json(),
             ];
-        } catch (\Throwable $e) {
+        } catch (\Throwable $exception) {
             $results['tests']['connectivity'] = [
                 'passed' => false,
-                'error' => $e->getMessage(),
+                'error' => $exception->getMessage(),
             ];
 
             return response()->json($results, 200);
         }
 
-        // Test 2: Session Status
         try {
-            $headers = $this->buildHeaders($apiKey, $basicAuth);
+            $response = $this->http($apiKey, $basicAuth)
+                ->get($this->url($host, '/api/sessions/' . $session));
 
-            $response = Http::withHeaders($headers)
-                ->get(rtrim($host, '/') . '/api/sessions/' . $session);
+            /** @var array<string, mixed> $sessionData */
+            $sessionData = $response->json() ?? [];
 
-            $sessionData = $response->json();
             $results['tests']['session'] = [
                 'passed' => $response->successful() && isset($sessionData['status']),
                 'status' => $sessionData['status'] ?? 'unknown',
                 'authenticated' => ($sessionData['status'] ?? '') === 'AUTHENTICATED',
                 'phone' => $sessionData['me']['id'] ?? null,
             ];
-        } catch (\Throwable $e) {
+        } catch (\Throwable $exception) {
             $results['tests']['session'] = [
                 'passed' => false,
-                'error' => $e->getMessage(),
+                'error' => $exception->getMessage(),
             ];
         }
 
-        // Test 3: Send Test Message (if phone provided)
         $testPhone = $request->input('test_phone');
-        if ($testPhone) {
-            try {
-                $headers = $this->buildHeaders($apiKey, $basicAuth);
 
-                $response = Http::withHeaders($headers)
-                    ->post(rtrim($host, '/') . '/api/sendText', [
+        if (is_string($testPhone) && $testPhone !== '') {
+            try {
+                $response = $this->http($apiKey, $basicAuth)
+                    ->post($this->url($host, '/api/sendText'), [
                         'session' => $session,
                         'chatId' => $testPhone . '@c.us',
                         'text' => "🔧 WAHA Validation Test\nServer: " . config('app.url') . "\nTime: " . now(),
@@ -93,30 +81,32 @@ class WahaValidationController
                     'status' => $response->status(),
                     'message_id' => $response->json('id'),
                 ];
-            } catch (\Throwable $e) {
+            } catch (\Throwable $exception) {
                 $results['tests']['send_message'] = [
                     'passed' => false,
-                    'error' => $e->getMessage(),
+                    'error' => $exception->getMessage(),
                 ];
             }
         }
 
-        // Determine overall status
-        $allPassed = collect($results['tests'])
-            ->every(fn ($test) => $test['passed']);
+        $allPassed = collect($results['tests'])->every(
+            static fn (array $test): bool => (bool) $test['passed']
+        );
+
+        $readyToUse = (bool) ($results['tests']['session']['authenticated'] ?? false);
 
         $results['overall_status'] = $allPassed ? 'success' : 'partial';
-        $results['ready_to_use'] = ($results['tests']['session']['authenticated'] ?? false);
+        $results['ready_to_use'] = $readyToUse;
 
-        // Generate env configuration
-        if ($results['ready_to_use']) {
+        if ($readyToUse) {
             $results['env_config'] = [
                 'WHATSAPP_PROVIDER' => 'waha',
                 'WAHA_BASE_URL' => $host,
                 'WAHA_API_KEY' => $apiKey ?: 'your_api_key',
                 'WAHA_SESSION' => $session,
             ];
-            if ($basicAuth) {
+
+            if (is_string($basicAuth) && $basicAuth !== '') {
                 $results['env_config']['WAHA_BASIC_AUTH'] = $basicAuth;
             }
         }
@@ -124,56 +114,54 @@ class WahaValidationController
         return response()->json($results, 200);
     }
 
-    /**
-     * Quick health check endpoint.
-     *
-     * @return JsonResponse
-     */
     public function health(): JsonResponse
     {
-        $host = config('traffic_source.settings.whatsapp.waha.base_url', 'http://localhost:3000');
+        $host = (string) config('traffic_source.settings.whatsapp.waha.base_url', 'http://localhost:3000');
         $apiKey = config('traffic_source.settings.whatsapp.waha.api_key');
         $basicAuth = config('traffic_source.settings.whatsapp.waha.basic_auth');
 
         try {
-            $headers = $this->buildHeaders($apiKey, $basicAuth);
-
-            $response = Http::withHeaders($headers)
+            $response = $this->http($apiKey, $basicAuth)
                 ->timeout(5)
-                ->get(rtrim($host, '/') . '/api/server/status');
+                ->get($this->url($host, '/api/server/status'));
 
             return response()->json([
                 'status' => $response->successful() ? 'healthy' : 'unhealthy',
                 'waha_status' => $response->json(),
             ], $response->successful() ? 200 : 503);
-        } catch (\Throwable $e) {
+        } catch (\Throwable $exception) {
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage(),
+                'message' => $exception->getMessage(),
             ], 503);
         }
     }
 
+    private function http(mixed $apiKey, mixed $basicAuth): PendingRequest
+    {
+        return Http::withHeaders($this->buildHeaders($apiKey, $basicAuth));
+    }
+
     /**
-     * Build request headers with optional API key and Basic Auth.
-     *
-     * @param string|null $apiKey
-     * @param string|null $basicAuth
-     *
-     * @return array
+     * @return array<string, string>
      */
-    private function buildHeaders(?string $apiKey, ?string $basicAuth): array
+    private function buildHeaders(mixed $apiKey, mixed $basicAuth): array
     {
         $headers = ['Content-Type' => 'application/json'];
 
-        if ($apiKey) {
+        if (is_string($apiKey) && $apiKey !== '') {
             $headers['X-Api-Key'] = $apiKey;
         }
 
-        if ($basicAuth) {
+        if (is_string($basicAuth) && $basicAuth !== '') {
             $headers['Authorization'] = 'Basic ' . base64_encode($basicAuth);
         }
 
         return $headers;
+    }
+
+    private function url(string $host, string $path): string
+    {
+        return rtrim($host, '/') . $path;
     }
 }

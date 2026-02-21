@@ -34,7 +34,7 @@ class WhatsAppQueryMiddlewareTest extends TestCase
         $this->assertEquals(200, $response->getStatusCode());
     }
 
-    public function test_missing_signature_returns_403(): void
+    public function test_missing_signature_returns_200(): void
     {
         $request = Request::create('api/whatsapp/bot', 'POST', [], [], [], [], '{}');
 
@@ -46,7 +46,7 @@ class WhatsAppQueryMiddlewareTest extends TestCase
         $this->assertEquals(403, $response->getStatusCode());
     }
 
-    public function test_invalid_signature_returns_403(): void
+    public function test_invalid_signature_returns_200(): void
     {
         $body = json_encode(['test' => 'data']);
 

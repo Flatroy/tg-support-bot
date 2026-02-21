@@ -2,9 +2,10 @@
 
 namespace App\Middleware;
 
-use App\Logging\LokiLogger;
 use Closure;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class WhatsAppQuery
@@ -32,10 +33,11 @@ class WhatsAppQuery
             $this->sendRequestInLoki($request);
 
             return $next($request);
-        } catch (\Throwable $e) {
+        } catch (\Throwable $exception) {
+            Log::channel('loki')->log($exception->getCode() === 1 ? 'warning' : 'error', $exception->getMessage(), ['file' => $exception->getFile(), 'line' => $exception->getLine()]);
             return response()->json([
                 'message' => 'Access is forbidden',
-                'error' => $e->getMessage(),
+                'error' => $exception->getMessage(),
             ], Response::HTTP_FORBIDDEN);
         }
     }
@@ -49,7 +51,6 @@ class WhatsAppQuery
     {
         $dataRequest = json_encode($request->all());
 
-        $logger = new LokiLogger();
-        $logger->log('whatsapp_request', $dataRequest);
+        Log::channel('loki')->info('whatsapp_request', ['data' => $dataRequest]);
     }
 }

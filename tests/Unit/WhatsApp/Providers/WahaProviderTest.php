@@ -40,14 +40,11 @@ class WahaProviderTest extends TestCase
             ], 201),
         ]);
 
-        $provider = new WahaProvider();
-        $dto = WhatsAppTextMessageDto::from([
+        $result = (new WahaProvider())->sendMessage(WhatsAppTextMessageDto::from([
             'to' => '12345678901',
             'type' => 'text',
             'text' => 'Test message',
-        ]);
-
-        $result = $provider->sendMessage($dto);
+        ]));
 
         $this->assertEquals(201, $result->response_code);
         $this->assertNotNull($result->message_id);
@@ -64,15 +61,12 @@ class WahaProviderTest extends TestCase
             ], 201),
         ]);
 
-        $provider = new WahaProvider();
-        $dto = WhatsAppTextMessageDto::from([
+        $result = (new WahaProvider())->sendMessage(WhatsAppTextMessageDto::from([
             'to' => '12345678901',
             'type' => 'image',
             'mediaUrl' => 'http://example.com/image.jpg',
             'caption' => 'Test image',
-        ]);
-
-        $result = $provider->sendMessage($dto);
+        ]));
 
         $this->assertEquals(201, $result->response_code);
         $this->assertNotNull($result->message_id);
@@ -80,10 +74,7 @@ class WahaProviderTest extends TestCase
 
     public function test_upload_media_returns_null(): void
     {
-        $provider = new WahaProvider();
-        $result = $provider->uploadMedia('/path/to/file.jpg', 'image/jpeg');
-
-        $this->assertNull($result);
+        $this->assertNull((new WahaProvider())->uploadMedia('/path/to/file.jpg', 'image/jpeg'));
     }
 
     public function test_mark_as_read(): void
@@ -92,12 +83,9 @@ class WahaProviderTest extends TestCase
             'localhost:3000/api/sendSeen' => Http::response([], 200),
         ]);
 
-        $provider = new WahaProvider();
+        (new WahaProvider())->markAsRead('false_12345678901@c.us_ABCDEF');
 
-        // Should not throw exception
-        $provider->markAsRead('false_12345678901@c.us_ABCDEF');
-
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             return $request->url() === 'http://localhost:3000/api/sendSeen'
                 && $request['session'] === 'default'
                 && $request['chatId'] === '12345678901@c.us';
@@ -106,8 +94,7 @@ class WahaProviderTest extends TestCase
 
     public function test_get_media_url(): void
     {
-        $provider = new WahaProvider();
-        $result = $provider->getMediaUrl('media_12345.oga');
+        $result = (new WahaProvider())->getMediaUrl('media_12345.oga');
 
         $this->assertStringContainsString('/api/files/media_12345.oga', $result);
     }
@@ -122,16 +109,13 @@ class WahaProviderTest extends TestCase
             ),
         ]);
 
-        $provider = new WahaProvider();
-        $result = $provider->downloadMedia('media_12345.oga');
+        $result = (new WahaProvider())->downloadMedia('media_12345.oga');
 
         $this->assertNotNull($result);
         $this->assertFileExists($result);
         $this->assertStringEndsWith('.ogg', $result);
 
-        // Cleanup
-        @unlink($result);
-        @rmdir(dirname($result));
+        $this->cleanupFile($result);
     }
 
     public function test_download_media_with_filename(): void
@@ -144,15 +128,18 @@ class WahaProviderTest extends TestCase
             ),
         ]);
 
-        $provider = new WahaProvider();
-        $result = $provider->downloadMedia('media_12345.pdf', 'document.pdf');
+        $result = (new WahaProvider())->downloadMedia('media_12345.pdf', 'document.pdf');
 
         $this->assertNotNull($result);
         $this->assertFileExists($result);
         $this->assertStringEndsWith('document.pdf', $result);
 
-        // Cleanup
-        @unlink($result);
-        @rmdir(dirname($result));
+        $this->cleanupFile($result);
+    }
+
+    private function cleanupFile(string $path): void
+    {
+        @unlink($path);
+        @rmdir(dirname($path));
     }
 }

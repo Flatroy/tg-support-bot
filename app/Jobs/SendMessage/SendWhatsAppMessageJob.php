@@ -4,11 +4,11 @@ namespace App\Jobs\SendMessage;
 
 use App\DTOs\TelegramUpdateDto;
 use App\DTOs\WhatsApp\WhatsAppTextMessageDto;
-use App\Logging\LokiLogger;
 use App\Models\BotUser;
 use App\Models\Message;
 use App\Models\WhatsappMessage;
 use App\WhatsAppBot\WhatsAppMethods;
+use Illuminate\Support\Facades\Log;
 
 class SendWhatsAppMessageJob extends AbstractSendMessageJob
 {
@@ -54,7 +54,7 @@ class SendWhatsAppMessageJob extends AbstractSendMessageJob
 
             throw new \Exception('SendWhatsAppMessageJob: unknown error', 1);
         } catch (\Throwable $e) {
-            (new LokiLogger())->logException($e);
+            Log::channel('loki')->log($e->getCode() === 1 ? 'warning' : 'error', $e->getMessage(), ['file' => $e->getFile(), 'line' => $e->getLine()]);
         }
     }
 
