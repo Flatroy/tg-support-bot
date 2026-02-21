@@ -137,6 +137,26 @@ class WahaProviderTest extends TestCase
         $this->cleanupFile($result);
     }
 
+    public function test_download_media_with_full_url(): void
+    {
+        Http::fake([
+            'http://localhost:3000/api/files/media_12345.oga' => Http::response(
+                'fake audio content',
+                200,
+                ['Content-Type' => 'audio/ogg']
+            ),
+        ]);
+
+        $fullUrl = 'http://localhost:3000/api/files/media_12345.oga';
+        $result = (new WahaProvider())->downloadMedia($fullUrl);
+
+        $this->assertNotNull($result);
+        $this->assertFileExists($result);
+        $this->assertStringEndsWith('.ogg', $result);
+
+        $this->cleanupFile($result);
+    }
+
     private function cleanupFile(string $path): void
     {
         @unlink($path);

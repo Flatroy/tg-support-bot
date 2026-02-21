@@ -36,11 +36,14 @@ class WahaProvider implements WhatsAppProviderInterface
         return null;
     }
 
-    public function downloadMedia(string $mediaId, ?string $filename = null): ?string
+    public function downloadMedia(string $mediaUrl, ?string $filename = null): ?string
     {
         try {
+            // Handle both full URLs and media IDs
+            $url = str_starts_with($mediaUrl, 'http') ? $mediaUrl : $this->getBaseUrl() . '/api/files/' . $mediaUrl;
+
             $response = Http::withHeaders($this->getHeaders())
-                ->get($this->getBaseUrl() . '/api/files/' . $mediaId);
+                ->get($url);
 
             if (! $response->successful()) {
                 return null;
