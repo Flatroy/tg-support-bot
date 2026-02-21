@@ -84,6 +84,14 @@ class ValidateWahaConnection extends Command
             }
         }
 
+        if ($this->confirm('Do you want to test sending an image? (requires test phone number)', false)) {
+            $phoneNumber = $this->ask('Enter test phone number (e.g., 12345678901)');
+
+            if ($phoneNumber !== null && $phoneNumber !== '') {
+                $this->testSendImage($host, $apiKey, $basicAuth, $session, $phoneNumber);
+            }
+        }
+
         return $this->printSummary($host, $apiKey, $session, $basicAuth, $currentStatus);
     }
 
@@ -184,6 +192,38 @@ class ValidateWahaConnection extends Command
             }
 
             $this->info('✅ Test message sent successfully');
+            $this->info('   Message ID: ' . ($response->json('id') ?? 'unknown'));
+        } catch (\Throwable $exception) {
+            $this->error('❌ Error: ' . $exception->getMessage());
+        }
+    }
+
+    private function testSendImage(string $host, ?string $apiKey, ?string $basicAuth, string $session, string $phoneNumber): void
+    {
+        $this->info('Sending test image to ' . $phoneNumber . '...');
+
+        try {
+            // Create a simple 1x1 PNG test image
+            $pngData = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+            $base64 = base64_encode($pngData);
+            $dataUri = 'data:image/png;base64,' . $base64;
+
+            $response = $this->http($apiKey, $basicAuth)->post($this->url($host, '/api/sendImage'), [
+                'session' => $session,
+                'chatId' => $phoneNumber . '@c.us',
+                'file' => $dataUri,
+                'caption' => '🔧 WAHA Test Image',
+            ]);
+
+            if (! $response->successful()) {
+                $this->error('❌ Failed to send test image');
+                $this->error('   Status: ' . $response->status());
+                $this->error('   Response: ' . $response->body());
+
+                return;
+            }
+
+            $this->info('✅ Test image sent successfully');
             $this->info('   Message ID: ' . ($response->json('id') ?? 'unknown'));
         } catch (\Throwable $exception) {
             $this->error('❌ Error: ' . $exception->getMessage());

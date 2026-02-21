@@ -33,7 +33,19 @@ class WahaProvider implements WhatsAppProviderInterface
 
     public function uploadMedia(string $filePath, string $mimeType): ?string
     {
-        return null;
+        if (! file_exists($filePath)) {
+            return null;
+        }
+
+        // WAHA accepts base64-encoded files in the file parameter
+        $fileContent = file_get_contents($filePath);
+        if ($fileContent === false) {
+            return null;
+        }
+
+        $base64 = base64_encode($fileContent);
+
+        return 'data:' . $mimeType . ';base64,' . $base64;
     }
 
     public function downloadMedia(string $mediaUrl, ?string $filename = null): ?string

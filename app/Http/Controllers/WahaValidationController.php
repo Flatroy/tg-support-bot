@@ -137,6 +137,49 @@ class WahaValidationController
         }
     }
 
+    public function testImage(Request $request): JsonResponse
+    {
+        $host = (string) $request->input('host', config('traffic_source.settings.whatsapp.waha.base_url', 'http://localhost:3000'));
+        $apiKey = $request->input('api_key', config('traffic_source.settings.whatsapp.waha.api_key'));
+        $basicAuth = $request->input('basic_auth', config('traffic_source.settings.whatsapp.waha.basic_auth'));
+        $session = (string) $request->input('session', 'default');
+        $testPhone = (string) $request->input('test_phone', '79956572287');
+
+        try {
+            // Create a simple test image (1x1 pixel PNG)
+            $pngData = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+            $tempFile = sys_get_temp_dir() . '/test_image_' . uniqid() . '.png';
+            file_put_contents($tempFile, $pngData);
+
+            // Convert to base64 data URI (same as uploadMedia does)
+            $base64 = base64_encode($pngData);
+            $dataUri = 'data:image/png;base64,' . $base64;
+
+            // Send via WAHA sendImage endpoint
+            $response = $this->http($apiKey, $basicAuth)
+                ->post($this->url($host, '/api/sendImage'), [
+                    'session' => $session,
+                    'chatId' => $testPhone . '@c.us',
+                    'file' => $dataUri,
+                    'caption' => '🔧 Test image from tg-support-bot validation',
+                ]);
+
+            @unlink($tempFile);
+
+            return response()->json([
+                'success' => $response->successful(),
+                'status' => $response->status(),
+                'response' => $response->json(),
+                'test_phone' => $testPhone,
+            ], $response->successful() ? 200 : 500);
+        } catch (\Throwable $exception) {
+            return response()->json([
+                'success' => false,
+                'error' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
     private function http(mixed $apiKey, mixed $basicAuth): PendingRequest
     {
         return Http::withHeaders($this->buildHeaders($apiKey, $basicAuth));

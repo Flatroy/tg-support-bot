@@ -172,8 +172,14 @@ readonly class WahaUpdateDto
 
         $media = self::arrayValue($payload, 'media');
 
+        // WAHA provides either 'id' or 'url' for media - use whichever is available
+        $mediaId = isset($media['id']) ? (string) $media['id'] : null;
+        if ($mediaId === null && isset($media['url'])) {
+            $mediaId = (string) $media['url'];
+        }
+
         return [
-            'id' => isset($media['id']) ? (string) $media['id'] : null,
+            'id' => $mediaId,
             'mimeType' => isset($media['mimetype']) ? (string) $media['mimetype'] : null,
             'filename' => isset($media['filename']) ? (string) $media['filename'] : null,
             'caption' => isset($payload['body']) ? (string) $payload['body'] : null,

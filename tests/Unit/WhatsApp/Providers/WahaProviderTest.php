@@ -72,9 +72,23 @@ class WahaProviderTest extends TestCase
         $this->assertNotNull($result->message_id);
     }
 
-    public function test_upload_media_returns_null(): void
+    public function test_upload_media_returns_base64_data_uri(): void
     {
-        $this->assertNull((new WahaProvider())->uploadMedia('/path/to/file.jpg', 'image/jpeg'));
+        $tempFile = sys_get_temp_dir() . '/test_upload_' . uniqid() . '.txt';
+        file_put_contents($tempFile, 'test content');
+
+        $result = (new WahaProvider())->uploadMedia($tempFile, 'text/plain');
+
+        $this->assertNotNull($result);
+        $this->assertStringStartsWith('data:text/plain;base64,', $result);
+        $this->assertEquals('dGVzdCBjb250ZW50', explode(',', $result)[1]); // base64 of "test content"
+
+        unlink($tempFile);
+    }
+
+    public function test_upload_media_returns_null_for_nonexistent_file(): void
+    {
+        $this->assertNull((new WahaProvider())->uploadMedia('/path/to/nonexistent/file.jpg', 'image/jpeg'));
     }
 
     public function test_mark_as_read(): void
