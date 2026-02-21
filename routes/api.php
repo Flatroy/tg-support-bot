@@ -5,6 +5,8 @@ use App\Http\Controllers\ExternalTrafficController;
 use App\Http\Controllers\FilesController;
 use App\Http\Controllers\TelegramBotController;
 use App\Http\Controllers\VkBotController;
+use App\Http\Controllers\WahaBotController;
+use App\Http\Controllers\WahaValidationController;
 use App\Http\Controllers\WhatsAppBotController;
 use App\Middleware\ApiQuery;
 use App\Middleware\TelegramQuery;
@@ -44,6 +46,14 @@ Route::group([
 ], function () {
     Route::get('bot', [WhatsAppBotController::class, 'verify']);
     Route::post('bot', [WhatsAppBotController::class, 'bot_query'])->middleware(WhatsAppQuery::class);
+});
+
+Route::group([
+    'prefix' => 'waha',
+], function () {
+    Route::post('bot', [WahaBotController::class, 'bot_query']);
+    Route::post('validate', [WahaValidationController::class, 'validateConnection']);
+    Route::get('health', [WahaValidationController::class, 'health']);
 });
 
 Route::group([
