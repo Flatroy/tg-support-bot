@@ -6,6 +6,7 @@ use App\Actions\Telegram\GetChat;
 use App\Actions\Telegram\SendContactMessage;
 use App\Models\BotUser;
 use App\Models\ExternalUser;
+use App\Models\WhatsappMessage;
 use App\TelegramBot\TelegramMethods;
 use Exception;
 use Illuminate\Bus\Queueable;
@@ -32,11 +33,15 @@ class TopicCreateJob implements ShouldQueue
 
     private int $botUserId;
 
+    private ?string $senderName;
+
     public function __construct(
         int $botUserId,
         TelegramMethods $telegramMethods = null,
+        ?string $senderName = null,
     ) {
         $this->botUserId = $botUserId;
+        $this->senderName = $senderName;
 
         $this->telegramMethods = $telegramMethods ?? new TelegramMethods();
     }
@@ -95,6 +100,10 @@ class TopicCreateJob implements ShouldQueue
                 return "#{$botUser->chat_id} ({$source})";
             }
 
+            if ($botUser->platform === 'whatsapp') {
+                return $this->generateWhatsAppTopicName($botUser);
+            }
+
             $templateTopicName = config('traffic_source.settings.telegram.template_topic_name');
             if (empty($templateTopicName)) {
                 throw new Exception('Template not found');
@@ -129,6 +138,49 @@ class TopicCreateJob implements ShouldQueue
         } catch (\Throwable $e) {
             return '#' . $botUser->chat_id . ' (' . $botUser->platform . ')';
         }
+    }
+
+    private function generateWhatsAppTopicName(BotUser $botUser): string
+    {
+        $chatId = (string) $botUser->chat_id;
+
+        $name = $this->senderName ?? $this->getWhatsAppSenderName($botUser);
+
+        // Group chat IDs from WhatsApp are very long numbers (15+ digits)
+        // Individual phone numbers are typically 10-15 digits
+        $isGroup = strlen($chatId) > 15;
+
+        if ($isGroup) {
+            return $name !== null && $name !== ''
+                ? $name . ' (whatsapp)'
+                : 'Group (whatsapp)';
+        }
+
+        return $name !== null && $name !== ''
+            ? $name . ' +' . $chatId . ' (whatsapp)'
+            : '+' . $chatId . ' (whatsapp)';
+    }
+
+    private function getWhatsAppSenderName(BotUser $botUser): ?string
+    {
+        $waMessage = WhatsappMessage::query()
+            ->whereHas('message', fn ($q) => $q->where('bot_user_id', $botUser->id))
+            ->whereNotNull('sender_name')
+            ->latest()
+            ->first();
+
+        if ($waMessage !== null) {
+            return $waMessage->sender_name;
+        }
+
+        // Fallback: group name seed record stored on group.joined event
+        $seed = WhatsappMessage::query()
+            ->where('wa_message_id', 'group_joined_' . $botUser->chat_id)
+            ->whereNotNull('sender_name')
+            ->latest()
+            ->first();
+
+        return $seed?->sender_name;
     }
 
     /**

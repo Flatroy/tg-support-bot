@@ -29,12 +29,18 @@ return [
             'verify_token' => env('WHATSAPP_VERIFY_TOKEN', ''),
             'app_secret' => env('WHATSAPP_APP_SECRET', ''),
             'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
-            // WAHA settings (new)
+            // WAHA settings
             'waha' => [
                 'base_url' => env('WAHA_BASE_URL', 'http://localhost:3000'),
                 'api_key' => env('WAHA_API_KEY', ''),
                 'session' => env('WAHA_SESSION', 'default'),
                 'basic_auth' => env('WAHA_BASIC_AUTH', ''), // e.g., 'admin:password'
+            ],
+            // GOWA (go-whatsapp-web-multidevice) settings
+            'gowa' => [
+                'base_url' => env('GOWA_BASE_URL', 'http://localhost:3000'),
+                'device_id' => env('GOWA_DEVICE_ID', ''),
+                'basic_auth' => env('GOWA_BASIC_AUTH', ''), // e.g., 'admin:password'
             ],
         ],
     ],

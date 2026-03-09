@@ -77,7 +77,7 @@ class SendWhatsAppTelegramMessageJob extends AbstractSendMessageJob
                         $this->updateDto,
                         $this->queryParams,
                     ),
-                ])->dispatch($this->botUserId);
+                ])->dispatch($this->botUserId, null, $this->updateDto->senderName);
 
                 return;
             }
@@ -119,6 +119,7 @@ class SendWhatsAppTelegramMessageJob extends AbstractSendMessageJob
 
         $waMessage = WhatsappMessage::create([
             'wa_message_id' => $this->updateDto->messageId,
+            'sender_name' => $this->updateDto->senderName,
         ]);
 
         $message = Message::create([

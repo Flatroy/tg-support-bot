@@ -23,6 +23,7 @@ readonly class WhatsAppUpdateDto
         public ?array $reaction,
         public ?array $status,
         public array $rawData,
+        public ?string $senderName = null,
     ) {
     }
 

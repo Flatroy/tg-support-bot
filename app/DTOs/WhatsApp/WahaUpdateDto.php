@@ -30,6 +30,7 @@ readonly class WahaUpdateDto
         public ?array $reaction,
         public ?array $status,
         public array $rawData,
+        public ?string $senderName = null,
     ) {
     }
 
@@ -124,6 +125,7 @@ readonly class WahaUpdateDto
             reaction: self::nullableArrayValue($payload, 'reaction'),
             status: null,
             rawData: $rawData,
+            senderName: isset($payload['notifyName']) ? (string) $payload['notifyName'] : null,
         );
     }
 

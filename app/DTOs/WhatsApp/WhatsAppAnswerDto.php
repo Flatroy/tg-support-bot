@@ -22,7 +22,14 @@ readonly class WhatsAppAnswerDto
     {
         $messageId = null;
         if (!empty($dataAnswer['messages'][0]['id'])) {
+            // Cloud API format
             $messageId = $dataAnswer['messages'][0]['id'];
+        } elseif (!empty($dataAnswer['results']['message_id'])) {
+            // GOWA format
+            $messageId = $dataAnswer['results']['message_id'];
+        } elseif (!empty($dataAnswer['results']['id'])) {
+            // WAHA format
+            $messageId = $dataAnswer['results']['id'];
         }
 
         $errorMessage = null;

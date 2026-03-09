@@ -6,6 +6,7 @@ namespace App\Services\WhatsApp;
 
 use App\Contracts\WhatsApp\WhatsAppProviderInterface;
 use App\Services\WhatsApp\Providers\CloudApiProvider;
+use App\Services\WhatsApp\Providers\GowaProvider;
 use App\Services\WhatsApp\Providers\WahaProvider;
 
 class WhatsAppProviderFactory
@@ -16,6 +17,7 @@ class WhatsAppProviderFactory
 
         return match ($provider) {
             'waha' => new WahaProvider(),
+            'gowa' => new GowaProvider(),
             default => new CloudApiProvider(),
         };
     }

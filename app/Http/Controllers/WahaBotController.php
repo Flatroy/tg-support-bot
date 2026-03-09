@@ -113,6 +113,7 @@ class WahaBotController
             reaction: $wahaDto->reaction,
             status: $wahaDto->status,
             rawData: $wahaDto->rawData,
+            senderName: $wahaDto->senderName,
         );
     }
 

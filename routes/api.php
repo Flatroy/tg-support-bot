@@ -3,6 +3,7 @@
 use App\Http\Controllers\AiTelegramBotController;
 use App\Http\Controllers\ExternalTrafficController;
 use App\Http\Controllers\FilesController;
+use App\Http\Controllers\GowaBotController;
 use App\Http\Controllers\TelegramBotController;
 use App\Http\Controllers\VkBotController;
 use App\Http\Controllers\WahaBotController;
@@ -55,6 +56,12 @@ Route::group([
     Route::post('validate', [WahaValidationController::class, 'validateConnection']);
     Route::get('health', [WahaValidationController::class, 'health']);
     Route::post('test-image', [WahaValidationController::class, 'testImage']);
+});
+
+Route::group([
+    'prefix' => 'gowa',
+], function () {
+    Route::post('bot', [GowaBotController::class, 'bot_query']);
 });
 
 Route::group([
