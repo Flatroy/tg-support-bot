@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DTOs\WhatsApp;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 readonly class GowaUpdateDto
 {
@@ -83,7 +84,7 @@ readonly class GowaUpdateDto
             from: (string) ($payload['from'] ?? $payload['chat_id'] ?? ''),
             chatId: (string) ($payload['chat_id'] ?? $payload['from'] ?? ''),
             type: self::determineType($payload),
-            text: isset($payload['body']) ? (string) $payload['body'] : null,
+            text: self::extractText($payload),
             mediaId: $mediaData['id'],
             mimeType: $mediaData['mimeType'],
             filename: $mediaData['filename'],
@@ -120,6 +121,24 @@ readonly class GowaUpdateDto
             ],
             rawData: $rawData,
         );
+    }
+
+    /**
+     * Try multiple field names for the text body, in order of precedence.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private static function extractText(array $payload): ?string
+    {
+        foreach (['body', 'message', 'text', 'content'] as $field) {
+            if (isset($payload[$field]) && is_string($payload[$field]) && $payload[$field] !== '') {
+                return $payload[$field];
+            }
+        }
+
+        Log::debug('GOWA: could not extract text from payload', ['payload_keys' => array_keys($payload), 'payload' => $payload]);
+
+        return null;
     }
 
     /**

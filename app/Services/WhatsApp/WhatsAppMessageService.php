@@ -56,6 +56,10 @@ class WhatsAppMessageService extends ToTgMessageService
      */
     protected function sendMessage(): void
     {
+        if (empty($this->update->text)) {
+            return;
+        }
+
         $this->messageParamsDTO->text = $this->getSenderPrefix() . $this->update->text;
 
         SendWhatsAppTelegramMessageJob::dispatch(
@@ -200,7 +204,7 @@ class WhatsAppMessageService extends ToTgMessageService
     private function getSenderPrefix(): string
     {
         if (strlen($this->update->chatId) > 15 && !empty($this->update->senderName)) {
-            return "*{$this->update->senderName}*:\n";
+            return '<b>' . htmlspecialchars($this->update->senderName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</b>:\n";
         }
 
         return '';
