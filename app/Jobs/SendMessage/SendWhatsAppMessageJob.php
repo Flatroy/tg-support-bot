@@ -55,6 +55,17 @@ class SendWhatsAppMessageJob extends AbstractSendMessageJob
             throw new \Exception('SendWhatsAppMessageJob: unknown error', 1);
         } catch (\Throwable $e) {
             Log::channel('loki')->log($e->getCode() === 1 ? 'warning' : 'error', $e->getMessage(), ['file' => $e->getFile(), 'line' => $e->getLine()]);
+        } finally {
+            $this->cleanupTempFile();
+        }
+    }
+
+    private function cleanupTempFile(): void
+    {
+        $mediaId = $this->queryParams->mediaId;
+
+        if ($mediaId !== null && str_starts_with($mediaId, '/') && file_exists($mediaId)) {
+            @unlink($mediaId);
         }
     }
 

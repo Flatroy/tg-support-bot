@@ -69,9 +69,9 @@ class TgWhatsAppMessageService extends FromTgMessageService
         }
 
         $mediaId = WhatsAppMethods::uploadMedia($localPath, 'image/jpeg');
-        @unlink($localPath);
 
         if (empty($mediaId)) {
+            @unlink($localPath);
             return;
         }
 
@@ -151,9 +151,9 @@ class TgWhatsAppMessageService extends FromTgMessageService
         }
 
         $mediaId = WhatsAppMethods::uploadMedia($localPath, 'audio/ogg');
-        @unlink($localPath);
 
         if (empty($mediaId)) {
+            @unlink($localPath);
             return;
         }
 
