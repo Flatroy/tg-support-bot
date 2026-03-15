@@ -45,6 +45,71 @@ class GowaProviderTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request->url(), '/send/message'));
     }
 
+    public function test_send_text_message_includes_device_id_header(): void
+    {
+        config(['traffic_source.settings.whatsapp.gowa.device_id' => '628123456789@s.whatsapp.net']);
+
+        Http::fake([
+            'http://localhost:3000/send/message' => Http::response([
+                'status' => 200,
+                'code' => 'SUCCESS',
+                'results' => ['message_id' => 'test-id-123'],
+            ], 200),
+        ]);
+
+        $dto = WhatsAppTextMessageDto::from([
+            'to' => '628123456789',
+            'type' => 'text',
+            'text' => 'Hello',
+        ]);
+
+        (new GowaProvider())->sendMessage($dto);
+
+        Http::assertSent(fn ($request) => $request->header('X-Device-Id')[0] === '628123456789@s.whatsapp.net');
+    }
+
+    public function test_send_text_message_to_group_uses_g_us_suffix(): void
+    {
+        Http::fake([
+            'http://localhost:3000/send/message' => Http::response([
+                'status' => 200,
+                'code' => 'SUCCESS',
+                'results' => ['message_id' => 'group-msg-id'],
+            ], 200),
+        ]);
+
+        $dto = WhatsAppTextMessageDto::from([
+            'to' => '120363425641907059',
+            'type' => 'text',
+            'text' => 'Hello group',
+        ]);
+
+        (new GowaProvider())->sendMessage($dto);
+
+        Http::assertSent(fn ($request) => str_contains((string) $request->body(), '120363425641907059@g.us'));
+    }
+
+    public function test_send_text_message_to_individual_uses_s_whatsapp_net_suffix(): void
+    {
+        Http::fake([
+            'http://localhost:3000/send/message' => Http::response([
+                'status' => 200,
+                'code' => 'SUCCESS',
+                'results' => ['message_id' => 'individual-msg-id'],
+            ], 200),
+        ]);
+
+        $dto = WhatsAppTextMessageDto::from([
+            'to' => '628123456789',
+            'type' => 'text',
+            'text' => 'Hello individual',
+        ]);
+
+        (new GowaProvider())->sendMessage($dto);
+
+        Http::assertSent(fn ($request) => str_contains((string) $request->body(), '628123456789@s.whatsapp.net'));
+    }
+
     public function test_send_image_message_with_url(): void
     {
         Http::fake([

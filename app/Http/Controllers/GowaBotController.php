@@ -45,7 +45,7 @@ class GowaBotController
 
         $this->markAsRead($dataHook->messageId, $dataHook->from);
 
-        $chatId = $this->extractPhoneNumber($dataHook->from);
+        $chatId = $this->extractPhoneNumber($dataHook->chatId);
         $botUser = BotUser::getUserByChatId($chatId, 'whatsapp');
 
         if ($botUser === null) {

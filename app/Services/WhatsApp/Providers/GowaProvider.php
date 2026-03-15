@@ -106,7 +106,8 @@ class GowaProvider implements WhatsAppProviderInterface
      */
     private function buildPayload(WhatsAppTextMessageDto $dto): array
     {
-        $phone = $dto->to . '@s.whatsapp.net';
+        $suffix = strlen($dto->to) > 15 ? '@g.us' : '@s.whatsapp.net';
+        $phone = $dto->to . $suffix;
 
         $base = [
             ['name' => 'phone', 'contents' => $phone],
@@ -169,12 +170,23 @@ class GowaProvider implements WhatsAppProviderInterface
             $headers['Authorization'] = 'Basic ' . base64_encode($basicAuth);
         }
 
+        $deviceId = $this->getDeviceId();
+
+        if ($deviceId !== '') {
+            $headers['X-Device-Id'] = $deviceId;
+        }
+
         return $headers;
     }
 
     private function getBasicAuth(): string
     {
         return (string) config('traffic_source.settings.whatsapp.gowa.basic_auth', '');
+    }
+
+    private function getDeviceId(): string
+    {
+        return (string) config('traffic_source.settings.whatsapp.gowa.device_id', '');
     }
 
     private function getBaseUrl(): string

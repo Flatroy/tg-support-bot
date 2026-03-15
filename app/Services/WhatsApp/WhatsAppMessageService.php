@@ -56,7 +56,7 @@ class WhatsAppMessageService extends ToTgMessageService
      */
     protected function sendMessage(): void
     {
-        $this->messageParamsDTO->text = $this->update->text;
+        $this->messageParamsDTO->text = $this->getSenderPrefix() . $this->update->text;
 
         SendWhatsAppTelegramMessageJob::dispatch(
             $this->botUser->id,
@@ -77,7 +77,7 @@ class WhatsAppMessageService extends ToTgMessageService
 
         $this->messageParamsDTO->methodQuery = 'sendPhoto';
         $this->messageParamsDTO->uploaded_file_path = $localPath;
-        $this->messageParamsDTO->caption = $this->update->caption ?? '';
+        $this->messageParamsDTO->caption = trim($this->getSenderPrefix() . ($this->update->caption ?? ''));
 
         SendWhatsAppTelegramMessageJob::dispatch(
             $this->botUser->id,
@@ -98,7 +98,7 @@ class WhatsAppMessageService extends ToTgMessageService
 
         $this->messageParamsDTO->methodQuery = 'sendDocument';
         $this->messageParamsDTO->uploaded_file_path = $localPath;
-        $this->messageParamsDTO->caption = $this->update->caption ?? '';
+        $this->messageParamsDTO->caption = trim($this->getSenderPrefix() . ($this->update->caption ?? ''));
 
         SendWhatsAppTelegramMessageJob::dispatch(
             $this->botUser->id,
@@ -180,7 +180,7 @@ class WhatsAppMessageService extends ToTgMessageService
             $textMessage .= "Телефон: {$contact['phones'][0]['phone']}\n";
         }
 
-        $this->messageParamsDTO->text = $textMessage;
+        $this->messageParamsDTO->text = $this->getSenderPrefix() . $textMessage;
 
         SendWhatsAppTelegramMessageJob::dispatch(
             $this->botUser->id,
@@ -195,6 +195,15 @@ class WhatsAppMessageService extends ToTgMessageService
     protected function sendVideoNote(): void
     {
         //
+    }
+
+    private function getSenderPrefix(): string
+    {
+        if (strlen($this->update->chatId) > 15 && !empty($this->update->senderName)) {
+            return "*{$this->update->senderName}*:\n";
+        }
+
+        return '';
     }
 
     /**
