@@ -227,6 +227,28 @@ class GowaUpdateDtoTest extends TestCase
         $this->assertNull($dto);
     }
 
+    public function test_parses_ptt_voice_note_as_audio_type(): void
+    {
+        $request = Request::create('/', 'POST', [
+            'event' => 'message',
+            'device_id' => '628987654321@s.whatsapp.net',
+            'payload' => [
+                'id' => 'PTT001',
+                'chat_id' => '628987654321@s.whatsapp.net',
+                'from' => '628123456789@s.whatsapp.net',
+                'is_from_me' => false,
+                'ptt' => 'statics/media/1752404905-voice.ogg',
+            ],
+        ]);
+
+        $dto = GowaUpdateDto::fromRequest($request);
+
+        $this->assertNotNull($dto);
+        $this->assertSame('audio', $dto->type);
+        $this->assertSame('statics/media/1752404905-voice.ogg', $dto->mediaId);
+        $this->assertSame('audio/ogg', $dto->mimeType);
+    }
+
     public function test_parses_sticker_as_image_type(): void
     {
         $request = Request::create('/', 'POST', [

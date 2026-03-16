@@ -140,6 +140,11 @@ class WhatsAppMessageService extends ToTgMessageService
         $this->messageParamsDTO->methodQuery = 'sendVoice';
         $this->messageParamsDTO->uploaded_file_path = $localPath;
 
+        $prefix = $this->getSenderPrefix();
+        if ($prefix !== '') {
+            $this->messageParamsDTO->caption = $prefix;
+        }
+
         SendWhatsAppTelegramMessageJob::dispatch(
             $this->botUser->id,
             $this->update,

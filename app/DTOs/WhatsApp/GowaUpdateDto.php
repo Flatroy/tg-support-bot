@@ -136,7 +136,10 @@ readonly class GowaUpdateDto
             }
         }
 
-        Log::debug('GOWA: could not extract text from payload', ['payload_keys' => array_keys($payload), 'payload' => $payload]);
+        $mediaFields = ['image', 'video', 'audio', 'ptt', 'document', 'sticker', 'video_note', 'location', 'contact'];
+        if (empty(array_intersect($mediaFields, array_keys($payload)))) {
+            Log::debug('GOWA: could not extract text from payload', ['payload_keys' => array_keys($payload), 'payload' => $payload]);
+        }
 
         return null;
     }
@@ -162,7 +165,7 @@ readonly class GowaUpdateDto
             return 'video';
         }
 
-        if (isset($payload['audio'])) {
+        if (isset($payload['audio']) || isset($payload['ptt'])) {
             return 'audio';
         }
 
@@ -190,7 +193,7 @@ readonly class GowaUpdateDto
     {
         $empty = ['id' => null, 'mimeType' => null, 'filename' => null, 'caption' => null];
 
-        foreach (['image', 'video', 'audio', 'document', 'sticker', 'video_note'] as $mediaType) {
+        foreach (['image', 'video', 'audio', 'ptt', 'document', 'sticker', 'video_note'] as $mediaType) {
             if (! isset($payload[$mediaType])) {
                 continue;
             }
@@ -239,7 +242,7 @@ readonly class GowaUpdateDto
             default => match ($mediaType) {
                 'image', 'sticker' => 'image/jpeg',
                 'video', 'video_note' => 'video/mp4',
-                'audio' => 'audio/ogg',
+                'audio', 'ptt' => 'audio/ogg',
                 default => 'application/octet-stream',
             },
         };
