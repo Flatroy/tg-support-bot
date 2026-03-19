@@ -211,10 +211,13 @@ readonly class GowaUpdateDto
             $media = $payload[$mediaType];
 
             if (is_string($media) && $media !== '') {
+                // Strip any codec/MIME suffix GOWA appends to the path (e.g. "xxx.ogg; codecs=opus")
+                $cleanPath = trim((string) explode(';', $media)[0]);
+
                 return [
-                    'id' => $media,
-                    'mimeType' => self::mimeTypeFromPath($media, $mediaType),
-                    'filename' => basename($media),
+                    'id' => $cleanPath,
+                    'mimeType' => self::mimeTypeFromPath($cleanPath, $mediaType),
+                    'filename' => basename($cleanPath),
                     'caption' => isset($payload['body']) ? (string) $payload['body'] : null,
                 ];
             }

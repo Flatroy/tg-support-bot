@@ -253,6 +253,28 @@ class GowaUpdateDtoTest extends TestCase
         $this->assertSame('Check this out!', $dto->caption);
     }
 
+    public function test_strips_codec_suffix_from_audio_path(): void
+    {
+        $request = Request::create('/', 'POST', [
+            'event' => 'message',
+            'device_id' => '628987654321@s.whatsapp.net',
+            'payload' => [
+                'id' => 'AUD001',
+                'chat_id' => '628987654321@s.whatsapp.net',
+                'from' => '628123456789@s.whatsapp.net',
+                'is_from_me' => false,
+                'audio' => 'statics/media/1773922366-ddb1f1a0-22c8-4e4f-9c3e-7dcc0075e7ee.ogg; codecs=opus',
+            ],
+        ]);
+
+        $dto = GowaUpdateDto::fromRequest($request);
+
+        $this->assertNotNull($dto);
+        $this->assertSame('audio', $dto->type);
+        $this->assertSame('statics/media/1773922366-ddb1f1a0-22c8-4e4f-9c3e-7dcc0075e7ee.ogg', $dto->mediaId);
+        $this->assertSame('audio/ogg', $dto->mimeType);
+    }
+
     public function test_parses_ptt_voice_note_as_audio_type(): void
     {
         $request = Request::create('/', 'POST', [
