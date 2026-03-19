@@ -110,6 +110,7 @@ abstract class AbstractSendMessageJob implements ShouldQueue
             return;
         }
 
+        Log::warning('Telegram unknown error', ['response_code' => $response->response_code, 'error' => $response->type_error ?? null, 'description' => $response->description ?? null]);
         Log::channel('loki')->error('Unknown error', ['response' => (array)$response]);
     }
 
