@@ -227,6 +227,32 @@ class GowaUpdateDtoTest extends TestCase
         $this->assertNull($dto);
     }
 
+    public function test_parses_image_with_path_key_when_auto_download_enabled(): void
+    {
+        $request = Request::create('/', 'POST', [
+            'event' => 'message',
+            'device_id' => '628987654321@s.whatsapp.net',
+            'payload' => [
+                'id' => 'IMG002',
+                'chat_id' => '628987654321@s.whatsapp.net',
+                'from' => '628123456789@s.whatsapp.net',
+                'is_from_me' => false,
+                'body' => 'Check this out!',
+                'image' => [
+                    'path' => 'statics/media/1752404751-test.jpeg',
+                    'caption' => 'Check this out!',
+                ],
+            ],
+        ]);
+
+        $dto = GowaUpdateDto::fromRequest($request);
+
+        $this->assertNotNull($dto);
+        $this->assertSame('image', $dto->type);
+        $this->assertSame('statics/media/1752404751-test.jpeg', $dto->mediaId);
+        $this->assertSame('Check this out!', $dto->caption);
+    }
+
     public function test_parses_ptt_voice_note_as_audio_type(): void
     {
         $request = Request::create('/', 'POST', [

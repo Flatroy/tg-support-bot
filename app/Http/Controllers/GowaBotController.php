@@ -62,6 +62,15 @@ class GowaBotController
             return $this->okResponse();
         }
 
+        if ($dataHook->type !== 'text') {
+            Log::info('GOWA media webhook', [
+                'type' => $dataHook->type,
+                'mediaId' => $dataHook->mediaId,
+                'chatId' => $dataHook->chatId,
+                'raw_type' => $dataHook->rawData['payload']['type'] ?? null,
+            ]);
+        }
+
         (new WhatsAppMessageService($this->convertToWhatsAppUpdateDto($dataHook)))->handleUpdate();
 
         return $this->okResponse();

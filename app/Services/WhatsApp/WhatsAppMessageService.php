@@ -132,8 +132,12 @@ class WhatsAppMessageService extends ToTgMessageService
      */
     protected function sendVoice(): void
     {
+        Log::channel('loki')->info('GOWA sendVoice: mediaId=' . ($this->update->mediaId ?? 'null') . ' chatId=' . $this->update->chatId);
+
         $localPath = $this->downloadWhatsAppMedia($this->update->mediaId);
+
         if (empty($localPath)) {
+            Log::channel('loki')->warning('GOWA sendVoice: download failed for mediaId=' . ($this->update->mediaId ?? 'null'));
             return;
         }
 

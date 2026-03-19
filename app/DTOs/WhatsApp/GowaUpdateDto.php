@@ -181,7 +181,17 @@ readonly class GowaUpdateDto
             return 'video';
         }
 
-        return 'text';
+        // Fallback: use GOWA's own type field when no media field was detected
+        $gowaType = strtolower((string) ($payload['type'] ?? ''));
+
+        return match ($gowaType) {
+            'ptt', 'audio' => 'audio',
+            'image' => 'image',
+            'video' => 'video',
+            'document', 'file' => 'document',
+            'sticker' => 'image',
+            default => 'text',
+        };
     }
 
     /**
@@ -200,7 +210,7 @@ readonly class GowaUpdateDto
 
             $media = $payload[$mediaType];
 
-            if (is_string($media)) {
+            if (is_string($media) && $media !== '') {
                 return [
                     'id' => $media,
                     'mimeType' => self::mimeTypeFromPath($media, $mediaType),
@@ -210,15 +220,43 @@ readonly class GowaUpdateDto
             }
 
             if (is_array($media)) {
-                $url = isset($media['url']) ? (string) $media['url'] : null;
+                // GOWA uses 'path' when auto-download is enabled, 'url' when disabled
+                $path = null;
+
+                foreach (['path', 'url'] as $key) {
+                    if (isset($media[$key]) && is_string($media[$key]) && $media[$key] !== '') {
+                        $path = $media[$key];
+                        break;
+                    }
+                }
 
                 return [
-                    'id' => $url,
-                    'mimeType' => self::mimeTypeFromPath($url ?? '', $mediaType),
-                    'filename' => isset($media['filename']) ? (string) $media['filename'] : ($url !== null ? basename($url) : null),
+                    'id' => $path,
+                    'mimeType' => self::mimeTypeFromPath($path ?? '', $mediaType),
+                    'filename' => isset($media['filename']) ? (string) $media['filename'] : ($path !== null ? basename($path) : null),
                     'caption' => isset($media['caption']) ? (string) $media['caption'] : (isset($payload['body']) ? (string) $payload['body'] : null),
                 ];
             }
+        }
+
+        // Fallback: GOWA may put the media path in body when audio/ptt field is null
+        $gowaType = strtolower((string) ($payload['type'] ?? ''));
+
+        if (in_array($gowaType, ['ptt', 'audio'], true)) {
+            $bodyPath = isset($payload['body']) && is_string($payload['body']) && $payload['body'] !== '' ? $payload['body'] : null;
+
+            if ($bodyPath !== null) {
+                Log::debug('GOWA: audio path from body fallback', ['body' => $bodyPath, 'gowa_type' => $gowaType]);
+
+                return [
+                    'id' => $bodyPath,
+                    'mimeType' => self::mimeTypeFromPath($bodyPath, 'audio'),
+                    'filename' => basename($bodyPath),
+                    'caption' => null,
+                ];
+            }
+
+            Log::warning('GOWA: audio/ptt message with no resolvable media path', ['payload_keys' => array_keys($payload), 'payload' => $payload]);
         }
 
         return $empty;
