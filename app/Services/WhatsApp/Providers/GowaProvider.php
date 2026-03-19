@@ -49,6 +49,8 @@ class GowaProvider implements WhatsAppProviderInterface
             $response = Http::withHeaders($this->getHeaders())->get($url);
 
             if (! $response->successful()) {
+                Log::warning('GOWA download failed', ['url' => $url, 'status' => $response->status(), 'body' => substr($response->body(), 0, 200)]);
+
                 return null;
             }
 
