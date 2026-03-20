@@ -108,7 +108,12 @@ class GowaProvider implements WhatsAppProviderInterface
         $base64Data = isset($json['results']['data']) ? (string) $json['results']['data'] : null;
 
         if (empty($base64Data)) {
-            Log::warning('GOWA download API: no data in response', ['keys' => array_keys($json)]);
+            $results = $json['results'] ?? null;
+            Log::warning('GOWA download API: no data in response', [
+                'top_keys' => array_keys($json),
+                'results_keys' => is_array($results) ? array_keys($results) : gettype($results),
+                'results_preview' => is_array($results) ? array_map(fn ($v) => is_string($v) ? substr($v, 0, 50) : $v, $results) : $results,
+            ]);
 
             return null;
         }
