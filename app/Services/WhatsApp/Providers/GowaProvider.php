@@ -54,6 +54,11 @@ class GowaProvider implements WhatsAppProviderInterface
                 return null;
             }
 
+            // Message download API returns base64-encoded JSON
+            if ($this->isMessageDownloadUrl($url)) {
+                return $this->saveFromBase64Response($response->json() ?? [], $filename);
+            }
+
             $filePath = $this->createTempPath($filename, $response->header('Content-Type'));
             file_put_contents($filePath, $response->body());
 
@@ -79,7 +84,49 @@ class GowaProvider implements WhatsAppProviderInterface
 
     public function getMediaUrl(string $mediaId): ?string
     {
+        if (str_starts_with($mediaId, 'gowa_dl:')) {
+            $parts = explode(':', $mediaId, 3);
+            $msgId = $parts[1] ?? '';
+            $fromJid = $parts[2] ?? '';
+
+            return $this->getBaseUrl() . '/message/' . $msgId . '/download?phone=' . urlencode($fromJid);
+        }
+
         return $this->resolveMediaUrl($mediaId);
+    }
+
+    private function isMessageDownloadUrl(string $url): bool
+    {
+        return str_contains($url, '/message/') && str_contains($url, '/download');
+    }
+
+    /**
+     * @param array<string, mixed> $json
+     */
+    private function saveFromBase64Response(array $json, ?string $filename): ?string
+    {
+        $base64Data = isset($json['results']['data']) ? (string) $json['results']['data'] : null;
+
+        if (empty($base64Data)) {
+            Log::warning('GOWA download API: no data in response', ['keys' => array_keys($json)]);
+
+            return null;
+        }
+
+        $binary = base64_decode($base64Data, strict: true);
+
+        if ($binary === false) {
+            Log::warning('GOWA download API: base64 decode failed');
+
+            return null;
+        }
+
+        $mimeType = isset($json['results']['mime_type']) ? (string) $json['results']['mime_type'] : null;
+        $apiFilename = isset($json['results']['file_name']) ? (string) $json['results']['file_name'] : null;
+        $filePath = $this->createTempPath($apiFilename ?? $filename, $mimeType);
+        file_put_contents($filePath, $binary);
+
+        return $filePath;
     }
 
     private function resolveMediaUrl(string $mediaPath): string

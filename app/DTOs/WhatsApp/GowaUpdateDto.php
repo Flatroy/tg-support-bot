@@ -214,6 +214,21 @@ readonly class GowaUpdateDto
                 // Strip any codec/MIME suffix GOWA appends to the path (e.g. "xxx.ogg; codecs=opus")
                 $cleanPath = trim((string) explode(';', $media)[0]);
 
+                // Audio/PTT files 404 when accessed as static files; use the GOWA message download API instead
+                if (in_array($mediaType, ['audio', 'ptt'], true)) {
+                    $msgId = (string) ($payload['id'] ?? '');
+                    $fromJid = (string) ($payload['from'] ?? '');
+
+                    if ($msgId !== '' && $fromJid !== '') {
+                        return [
+                            'id' => 'gowa_dl:' . $msgId . ':' . $fromJid,
+                            'mimeType' => self::mimeTypeFromPath($cleanPath, $mediaType),
+                            'filename' => basename($cleanPath),
+                            'caption' => isset($payload['body']) ? (string) $payload['body'] : null,
+                        ];
+                    }
+                }
+
                 return [
                     'id' => $cleanPath,
                     'mimeType' => self::mimeTypeFromPath($cleanPath, $mediaType),

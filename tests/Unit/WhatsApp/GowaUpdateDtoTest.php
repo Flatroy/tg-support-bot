@@ -123,8 +123,9 @@ class GowaUpdateDtoTest extends TestCase
 
         $this->assertNotNull($dto);
         $this->assertSame('audio', $dto->type);
-        $this->assertSame('statics/media/1752404905-voice.ogg', $dto->mediaId);
+        $this->assertSame('gowa_dl:AUD001:628123456789@s.whatsapp.net', $dto->mediaId);
         $this->assertSame('audio/ogg', $dto->mimeType);
+        $this->assertSame('1752404905-voice.ogg', $dto->filename);
     }
 
     public function test_parses_document_message(): void
@@ -271,8 +272,9 @@ class GowaUpdateDtoTest extends TestCase
 
         $this->assertNotNull($dto);
         $this->assertSame('audio', $dto->type);
-        $this->assertSame('statics/media/1773922366-ddb1f1a0-22c8-4e4f-9c3e-7dcc0075e7ee.ogg', $dto->mediaId);
+        $this->assertSame('gowa_dl:AUD001:628123456789@s.whatsapp.net', $dto->mediaId);
         $this->assertSame('audio/ogg', $dto->mimeType);
+        $this->assertSame('1773922366-ddb1f1a0-22c8-4e4f-9c3e-7dcc0075e7ee.ogg', $dto->filename);
     }
 
     public function test_parses_ptt_voice_note_as_audio_type(): void
@@ -283,7 +285,7 @@ class GowaUpdateDtoTest extends TestCase
             'payload' => [
                 'id' => 'PTT001',
                 'chat_id' => '628987654321@s.whatsapp.net',
-                'from' => '628123456789@s.whatsapp.net',
+                'from' => '628999888777@s.whatsapp.net',
                 'is_from_me' => false,
                 'ptt' => 'statics/media/1752404905-voice.ogg',
             ],
@@ -293,8 +295,9 @@ class GowaUpdateDtoTest extends TestCase
 
         $this->assertNotNull($dto);
         $this->assertSame('audio', $dto->type);
-        $this->assertSame('statics/media/1752404905-voice.ogg', $dto->mediaId);
+        $this->assertSame('gowa_dl:PTT001:628999888777@s.whatsapp.net', $dto->mediaId);
         $this->assertSame('audio/ogg', $dto->mimeType);
+        $this->assertSame('1752404905-voice.ogg', $dto->filename);
     }
 
     public function test_parses_sticker_as_image_type(): void
