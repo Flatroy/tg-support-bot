@@ -253,6 +253,41 @@ class GowaProvider implements WhatsAppProviderInterface
         return $messageId;
     }
 
+    /**
+     * Fetch recent messages from a chat.
+     *
+     * @param string $chatJid The chat JID (e.g., phone@s.whatsapp.net)
+     * @param int    $limit   Number of messages to fetch (default 10)
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getChatMessages(string $chatJid, int $limit = 10): array
+    {
+        try {
+            $response = Http::withHeaders($this->getHeaders())
+                ->get($this->getBaseUrl() . '/chat/' . urlencode($chatJid) . '/messages', [
+                    'limit' => $limit,
+                    'offset' => 0,
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('GOWA getChatMessages failed', ['chat' => $chatJid, 'status' => $response->status()]);
+
+                return [];
+            }
+
+            /** @var array<string, mixed> $json */
+            $json = $response->json() ?? [];
+            $messages = $json['results']['messages'] ?? [];
+
+            return is_array($messages) ? $messages : [];
+        } catch (\Throwable $exception) {
+            Log::channel('loki')->warning('GOWA getChatMessages exception: ' . $exception->getMessage());
+
+            return [];
+        }
+    }
+
     private function createTempPath(?string $filename, ?string $contentType): string
     {
         $tempDir = sys_get_temp_dir() . '/' . uniqid('gowa_');

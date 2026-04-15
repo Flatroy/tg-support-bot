@@ -71,6 +71,9 @@ class GowaBotController
             ]);
         }
 
+        // Sync recent chat history to catch any missed messages (replies, etc.)
+        $this->syncChatHistory($dataHook->chatId, $botUser);
+
         (new WhatsAppMessageService($this->convertToWhatsAppUpdateDto($dataHook)))->handleUpdate();
 
         return $this->okResponse();
@@ -171,5 +174,125 @@ class GowaBotController
     private function provider(): GowaProvider
     {
         return new GowaProvider();
+    }
+
+    /**
+     * Sync recent chat history to catch missed messages (replies, etc.).
+     * Processes last 10 messages, skipping those already in our database.
+     */
+    private function syncChatHistory(string $chatJid, BotUser $botUser): void
+    {
+        try {
+            // Use a cache key to prevent syncing the same chat too frequently
+            $syncKey = 'gowa_sync_' . md5($chatJid);
+            if (Cache::has($syncKey)) {
+                return;
+            }
+            Cache::put($syncKey, true, 30); // Sync once per 30 seconds per chat
+
+            $messages = $this->provider()->getChatMessages($chatJid, 10);
+
+            if (empty($messages)) {
+                return;
+            }
+
+            // Get existing message IDs from our database
+            $messageIds = array_column($messages, 'id');
+            $existingIds = WhatsappMessage::query()
+                ->whereIn('wa_message_id', $messageIds)
+                ->pluck('wa_message_id')
+                ->toArray();
+            $existingSet = array_flip($existingIds);
+
+            // Process messages in reverse order (oldest first) so they appear correctly in Telegram
+            $messagesToProcess = [];
+            foreach (array_reverse($messages) as $msg) {
+                $msgId = $msg['id'] ?? null;
+                if ($msgId === null || isset($existingSet[$msgId])) {
+                    continue; // Skip existing messages
+                }
+
+                // Skip our own messages (from bot/device)
+                if (! empty($msg['is_from_me'])) {
+                    continue;
+                }
+
+                // Skip reactions
+                if (($msg['type'] ?? '') === 'reaction') {
+                    continue;
+                }
+
+                $messagesToProcess[] = $msg;
+            }
+
+            if (empty($messagesToProcess)) {
+                return;
+            }
+
+            Log::info('GOWA syncing chat history', [
+                'chat' => $chatJid,
+                'new_messages' => count($messagesToProcess),
+            ]);
+
+            foreach ($messagesToProcess as $msg) {
+                $this->processHistoryMessage($msg, $chatJid, $botUser);
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('Failed to sync chat history: ' . $exception->getMessage());
+        }
+    }
+
+    /**
+     * Process a single message from chat history.
+     *
+     * @param array<string, mixed> $msg
+     */
+    private function processHistoryMessage(array $msg, string $chatJid, BotUser $botUser): void
+    {
+        try {
+            $msgId = $msg['id'] ?? null;
+            if ($msgId === null) {
+                return;
+            }
+
+            // Build a payload similar to webhook format for GowaUpdateDto
+            $payload = [
+                'id' => $msgId,
+                'chat_id' => $chatJid,
+                'from' => $msg['sender'] ?? '',
+                'is_from_me' => $msg['is_from_me'] ?? false,
+                'type' => $msg['type'] ?? 'text',
+                'body' => $msg['body'] ?? '',
+                'timestamp' => $msg['timestamp'] ?? time(),
+                'sender_name' => $msg['push_name'] ?? null,
+            ];
+
+            // Add media fields if present
+            if (! empty($msg['media_type'])) {
+                $payload[$msg['media_type']] = $msg['url'] ?? $msg['path'] ?? '';
+                $payload['body'] = $msg['caption'] ?? $payload['body'];
+            }
+
+            $request = \Illuminate\Http\Request::create('/', 'POST', [
+                'event' => 'message',
+                'device_id' => $chatJid,
+                'payload' => $payload,
+            ]);
+
+            $dataHook = GowaUpdateDto::fromRequest($request);
+
+            if ($dataHook === null) {
+                return;
+            }
+
+            // Skip if already processed recently (double-check)
+            if ($this->isDuplicatedEvent($dataHook->messageId)) {
+                return;
+            }
+
+            (new WhatsAppMessageService($this->convertToWhatsAppUpdateDto($dataHook)))->handleUpdate();
+        } catch (\Throwable $exception) {
+            Log::warning('Failed to process history message: ' . $exception->getMessage(), ['msg_id' => $msg['id'] ?? 'unknown']);
+        }
     }
 }
