@@ -226,6 +226,12 @@ class GowaBotController
             }
 
             if (empty($messagesToProcess)) {
+                Log::debug('GOWA sync: no messages to process after filtering', [
+                    'chat' => $chatJid,
+                    'fetched_count' => count($messages),
+                    'existing_ids' => array_slice($existingIds, 0, 10),
+                ]);
+
                 return;
             }
 
@@ -285,13 +291,19 @@ class GowaBotController
             $dataHook = GowaUpdateDto::fromRequest($request);
 
             if ($dataHook === null) {
+                Log::debug('GOWA history: DTO returned null', ['msg_id' => $msgId, 'from' => $payload['from'] ?? null]);
+
                 return;
             }
 
             // Skip if already processed recently (double-check)
             if ($this->isDuplicatedEvent($dataHook->messageId)) {
+                Log::debug('GOWA history: message already processed', ['msg_id' => $msgId]);
+
                 return;
             }
+
+            Log::debug('GOWA history: processing message', ['msg_id' => $msgId, 'type' => $dataHook->type]);
 
             (new WhatsAppMessageService($this->convertToWhatsAppUpdateDto($dataHook)))->handleUpdate();
         } catch (\Throwable $exception) {
