@@ -256,21 +256,24 @@ class GowaBotController
             }
 
             // Build a payload similar to webhook format for GowaUpdateDto
+            // Field names per GOWA OpenAPI ChatMessage schema
+            $mediaType = $msg['media_type'] ?? null;
+            $type = $mediaType ?? 'text';
+
             $payload = [
                 'id' => $msgId,
                 'chat_id' => $chatJid,
-                'from' => $msg['sender'] ?? '',
+                'from' => $msg['sender_jid'] ?? '',
                 'is_from_me' => $msg['is_from_me'] ?? false,
-                'type' => $msg['type'] ?? 'text',
-                'body' => $msg['body'] ?? '',
+                'type' => $type,
+                'body' => $msg['content'] ?? '',
                 'timestamp' => $msg['timestamp'] ?? time(),
                 'sender_name' => $msg['push_name'] ?? null,
             ];
 
-            // Add media fields if present
-            if (! empty($msg['media_type'])) {
-                $payload[$msg['media_type']] = $msg['url'] ?? $msg['path'] ?? '';
-                $payload['body'] = $msg['caption'] ?? $payload['body'];
+            // Add media fields if present (url per spec, not path)
+            if (! empty($mediaType)) {
+                $payload[$mediaType] = $msg['url'] ?? '';
             }
 
             $request = \Illuminate\Http\Request::create('/', 'POST', [

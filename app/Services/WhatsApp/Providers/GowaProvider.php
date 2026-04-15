@@ -284,7 +284,7 @@ class GowaProvider implements WhatsAppProviderInterface
 
             /** @var array<string, mixed> $json */
             $json = $response->json() ?? [];
-            $messages = $json['results']['messages'] ?? [];
+            $messages = $json['results']['data'] ?? [];
 
             return is_array($messages) ? $messages : [];
         } catch (\Throwable $exception) {
