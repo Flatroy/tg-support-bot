@@ -67,6 +67,9 @@ class TGTextMessageDto extends Data
         $dataMessage = array_filter(parent::toArray(), fn ($value) => !is_null($value));
         unset($dataMessage['methodQuery']);
 
+        // icon_custom_emoji_id is only valid for editForumTopic/createForumTopic, not messages
+        unset($dataMessage['icon_custom_emoji_id']);
+
         if (!empty($dataMessage['typeSource'])) {
             unset($dataMessage['typeSource']);
         }
