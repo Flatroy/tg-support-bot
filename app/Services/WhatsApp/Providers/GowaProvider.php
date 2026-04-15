@@ -45,11 +45,20 @@ class GowaProvider implements WhatsAppProviderInterface
     {
         try {
             $url = $this->resolveMediaUrl($mediaUrl);
+            $headers = $this->getHeaders();
 
-            $response = Http::withHeaders($this->getHeaders())->get($url);
+            $response = Http::withHeaders($headers)->get($url);
 
             if (! $response->successful()) {
-                Log::warning('GOWA download failed', ['url' => $url, 'status' => $response->status(), 'body' => substr($response->body(), 0, 200)]);
+                $body = $response->json() ?? [];
+                $errorMsg = $body['message'] ?? substr($response->body(), 0, 200);
+
+                // 410 = media expired on WhatsApp servers, don't retry
+                if (str_contains($errorMsg, '410') || str_contains($errorMsg, 'expired')) {
+                    Log::info('GOWA media expired (410)', ['url' => $url]);
+                } else {
+                    Log::warning('GOWA download failed', ['url' => $url, 'status' => $response->status(), 'headers_sent' => array_keys($headers), 'error' => $errorMsg]);
+                }
 
                 return null;
             }
