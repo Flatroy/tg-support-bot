@@ -264,14 +264,20 @@ class GowaProvider implements WhatsAppProviderInterface
     public function getChatMessages(string $chatJid, int $limit = 10): array
     {
         try {
+            $url = $this->getBaseUrl() . '/chat/' . $chatJid . '/messages';
             $response = Http::withHeaders($this->getHeaders())
-                ->get($this->getBaseUrl() . '/chat/' . urlencode($chatJid) . '/messages', [
+                ->get($url, [
                     'limit' => $limit,
                     'offset' => 0,
                 ]);
 
             if (! $response->successful()) {
-                Log::warning('GOWA getChatMessages failed', ['chat' => $chatJid, 'status' => $response->status()]);
+                Log::warning('GOWA getChatMessages failed', [
+                    'chat' => $chatJid,
+                    'status' => $response->status(),
+                    'url' => $url,
+                    'body' => substr($response->body(), 0, 300),
+                ]);
 
                 return [];
             }
