@@ -212,9 +212,9 @@ class GowaBotController
                     continue; // Skip existing messages
                 }
 
-                // Also check cache to prevent duplicates when jobs haven't saved to DB yet
+                // Skip if already claimed by the direct webhook flow or a previous sync
                 $processingKey = 'gowa_processing_' . $msgId;
-                if (Cache::has($processingKey)) {
+                if (Cache::has($processingKey) || Cache::has('gowa_event_' . $msgId)) {
                     continue;
                 }
 
