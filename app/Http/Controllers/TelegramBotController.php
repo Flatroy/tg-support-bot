@@ -140,13 +140,15 @@ class TelegramBotController
         } elseif ($this->dataHook->aiTechMessage) {
             if ($this->dataHook->text !== null && str_contains($this->dataHook->text, 'ai_message_edit_')) {
                 (new EditAiMessage())->execute($this->dataHook);
+            } elseif ($this->dataHook->text !== null && str_contains($this->dataHook->text, '/ai_generate')) {
+                (new SendAiAnswerMessage())->execute($this->dataHook);
             }
         } else {
             switch ($this->dataHook->typeQuery) {
                 case 'message':
                     if ($this->dataHook->text === '/start' && !$this->isSupergroup()) {
                         (new SendStartMessage())->execute($this->dataHook);
-                    } elseif ($this->dataHook->text !== null && str_contains($this->dataHook->text, '/ai_generate') && $this->isSupergroup()) {
+                    } elseif ($this->dataHook->text !== null && str_contains($this->dataHook->text, '/ai_generate') && ($this->isSupergroup() || $this->dataHook->typeSource === 'group')) {
                         (new SendAiAnswerMessage())->execute($this->dataHook);
                     } else {
                         (new TgMessageService($this->dataHook))->handleUpdate();
