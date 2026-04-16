@@ -212,11 +212,6 @@ class GowaBotController
                     continue; // Skip existing messages
                 }
 
-                // Skip our own messages (from bot/device)
-                if (! empty($msg['is_from_me'])) {
-                    continue;
-                }
-
                 // Skip reactions
                 if (($msg['type'] ?? '') === 'reaction') {
                     continue;
@@ -273,17 +268,24 @@ class GowaBotController
             // Support both OpenAPI spec field names and actual API field names
             $mediaType = $msg['media_type'] ?? null;
             $type = $mediaType ?? 'text';
+            $isFromMe = ! empty($msg['is_from_me']);
 
             // GOWA API may use different field names than OpenAPI spec
             $senderJid = $msg['sender_jid'] ?? $msg['from'] ?? '';
             $senderName = $msg['push_name'] ?? $msg['from_name'] ?? null;
             $messageText = $msg['content'] ?? $msg['body'] ?? '';
 
+            // Prefix own replies so they appear clearly in Telegram
+            if ($isFromMe) {
+                $messageText = '📤 You: ' . $messageText;
+                $senderName = 'You';
+            }
+
             $payload = [
                 'id' => $msgId,
                 'chat_id' => $chatJid,
                 'from' => $senderJid,
-                'is_from_me' => $msg['is_from_me'] ?? false,
+                'is_from_me' => false, // Override so GowaUpdateDto doesn't filter it out
                 'type' => $type,
                 'body' => $messageText,
                 'timestamp' => $msg['timestamp'] ?? time(),
@@ -305,13 +307,6 @@ class GowaBotController
 
             if ($dataHook === null) {
                 Log::debug('GOWA history: DTO returned null', ['msg_id' => $msgId, 'from' => $payload['from'] ?? null]);
-
-                return;
-            }
-
-            // Skip if already processed recently (double-check)
-            if ($this->isDuplicatedEvent($dataHook->messageId)) {
-                Log::debug('GOWA history: message already processed', ['msg_id' => $msgId]);
 
                 return;
             }
