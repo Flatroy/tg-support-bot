@@ -104,6 +104,12 @@ class TelegramBotController
                 }
             }
 
+            if ($this->dataHook->text !== null && str_contains($this->dataHook->text, '/ai_generate')) {
+                (new SendAiAnswerMessage())->execute($this->dataHook);
+
+                return;
+            }
+
             switch ($this->platform) {
                 case 'telegram':
                     $this->controllerPlatformTg();

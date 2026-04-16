@@ -67,7 +67,8 @@ class TestGowaSync extends Command
             $this->warn("No BotUser found for {$chatJid}, creating test context...");
         }
 
-        $method->invoke($controller, $chatJid, $botUser, $limit);
+        $fullJid = str_contains($chatJid, '@') ? $chatJid : $chatJid . '@s.whatsapp.net';
+        $method->invoke($controller, $fullJid, $botUser, $limit);
 
         $this->info('Sync completed. Check logs for details.');
 
@@ -91,11 +92,12 @@ class TestGowaSync extends Command
         $failCount = 0;
 
         foreach ($botUsers as $botUser) {
-            $chatJid = $botUser->chat_id;
+            $chatJid = (string) $botUser->chat_id;
             $this->info("\n--- Syncing {$chatJid} ---");
 
             try {
-                $method->invoke($controller, $chatJid, $botUser, $limit);
+                $fullJid = str_contains($chatJid, '@') ? $chatJid : $chatJid . '@s.whatsapp.net';
+                $method->invoke($controller, $fullJid, $botUser, $limit);
                 $successCount++;
                 $this->info("✓ Sync triggered for {$chatJid}");
             } catch (\Throwable $e) {
