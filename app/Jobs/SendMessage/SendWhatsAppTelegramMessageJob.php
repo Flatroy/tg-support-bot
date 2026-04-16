@@ -59,13 +59,14 @@ class SendWhatsAppTelegramMessageJob extends AbstractSendMessageJob
                     ]
                 );
 
-                if ($response->isTopicNotFound || $response->type_error === 'TOPIC_NOT_MODIFIED') {
+                if ($response->isTopicNotFound) {
                     $botUser->update([
                         'topic_id' => null,
                     ]);
 
                     $botUser->refresh();
                 } else {
+                    // TOPIC_NOT_MODIFIED means topic exists with correct icon — proceed normally
                     $params['message_thread_id'] = $botUser->topic_id;
                 }
             }
