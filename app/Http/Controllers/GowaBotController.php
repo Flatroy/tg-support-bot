@@ -212,11 +212,19 @@ class GowaBotController
                     continue; // Skip existing messages
                 }
 
+                // Also check cache to prevent duplicates when jobs haven't saved to DB yet
+                $processingKey = 'gowa_processing_' . $msgId;
+                if (Cache::has($processingKey)) {
+                    continue;
+                }
+
                 // Skip reactions
                 if (($msg['type'] ?? '') === 'reaction') {
                     continue;
                 }
 
+                // Lock this message immediately so concurrent/next syncs skip it
+                Cache::put($processingKey, true, 300);
                 $messagesToProcess[] = $msg;
             }
 
