@@ -178,9 +178,9 @@ class GowaBotController
 
     /**
      * Sync recent chat history to catch missed messages (replies, etc.).
-     * Processes last 10 messages, skipping those already in our database.
+     * Processes last N messages, skipping those already in our database.
      */
-    private function syncChatHistory(string $chatJid, BotUser $botUser): void
+    private function syncChatHistory(string $chatJid, BotUser $botUser, int $limit = 10): void
     {
         try {
             // Use a cache key to prevent syncing the same chat too frequently
@@ -190,7 +190,7 @@ class GowaBotController
             }
             Cache::put($syncKey, true, 30); // Sync once per 30 seconds per chat
 
-            $messages = $this->provider()->getChatMessages($chatJid, 10);
+            $messages = $this->provider()->getChatMessages($chatJid, $limit);
 
             if (empty($messages)) {
                 return;
@@ -241,6 +241,14 @@ class GowaBotController
             ]);
 
             foreach ($messagesToProcess as $msg) {
+                Log::debug('GOWA history: processing message with keys', [
+                    'msg_id' => $msg['id'] ?? 'unknown',
+                    'keys' => array_keys($msg),
+                    'has_content' => isset($msg['content']),
+                    'has_body' => isset($msg['body']),
+                    'has_from' => isset($msg['from']),
+                    'has_sender_jid' => isset($msg['sender_jid']),
+                ]);
                 $this->processHistoryMessage($msg, $chatJid, $botUser);
             }
         } catch (\Throwable $exception) {
@@ -262,19 +270,24 @@ class GowaBotController
             }
 
             // Build a payload similar to webhook format for GowaUpdateDto
-            // Field names per GOWA OpenAPI ChatMessage schema
+            // Support both OpenAPI spec field names and actual API field names
             $mediaType = $msg['media_type'] ?? null;
             $type = $mediaType ?? 'text';
+
+            // GOWA API may use different field names than OpenAPI spec
+            $senderJid = $msg['sender_jid'] ?? $msg['from'] ?? '';
+            $senderName = $msg['push_name'] ?? $msg['from_name'] ?? null;
+            $messageText = $msg['content'] ?? $msg['body'] ?? '';
 
             $payload = [
                 'id' => $msgId,
                 'chat_id' => $chatJid,
-                'from' => $msg['sender_jid'] ?? '',
+                'from' => $senderJid,
                 'is_from_me' => $msg['is_from_me'] ?? false,
                 'type' => $type,
-                'body' => $msg['content'] ?? '',
+                'body' => $messageText,
                 'timestamp' => $msg['timestamp'] ?? time(),
-                'sender_name' => $msg['push_name'] ?? null,
+                'sender_name' => $senderName,
             ];
 
             // Add media fields if present (url per spec, not path)
