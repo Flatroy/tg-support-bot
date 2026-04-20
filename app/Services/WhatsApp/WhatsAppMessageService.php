@@ -9,6 +9,7 @@ use App\DTOs\WhatsApp\WhatsAppUpdateDto;
 use App\Jobs\SendMessage\SendWhatsAppTelegramMessageJob;
 use App\Models\BotUser;
 use App\Services\ActionService\Send\ToTgMessageService;
+use App\Services\TranslationService;
 use App\WhatsAppBot\WhatsAppMethods;
 use Illuminate\Support\Facades\Log;
 
@@ -60,7 +61,8 @@ class WhatsAppMessageService extends ToTgMessageService
             return;
         }
 
-        $this->messageParamsDTO->text = $this->getSenderPrefix() . $this->update->text;
+        $text = (new TranslationService())->maybeTranslate($this->update->text);
+        $this->messageParamsDTO->text = $this->getSenderPrefix() . $text;
 
         SendWhatsAppTelegramMessageJob::dispatch(
             $this->botUser->id,
@@ -79,9 +81,10 @@ class WhatsAppMessageService extends ToTgMessageService
             return;
         }
 
+        $caption = (new TranslationService())->maybeTranslate($this->update->caption ?? '');
         $this->messageParamsDTO->methodQuery = 'sendPhoto';
         $this->messageParamsDTO->uploaded_file_path = $localPath;
-        $this->messageParamsDTO->caption = trim($this->getSenderPrefix() . ($this->update->caption ?? ''));
+        $this->messageParamsDTO->caption = trim($this->getSenderPrefix() . $caption);
 
         SendWhatsAppTelegramMessageJob::dispatch(
             $this->botUser->id,
@@ -100,9 +103,10 @@ class WhatsAppMessageService extends ToTgMessageService
             return;
         }
 
+        $caption = (new TranslationService())->maybeTranslate($this->update->caption ?? '');
         $this->messageParamsDTO->methodQuery = 'sendDocument';
         $this->messageParamsDTO->uploaded_file_path = $localPath;
-        $this->messageParamsDTO->caption = trim($this->getSenderPrefix() . ($this->update->caption ?? ''));
+        $this->messageParamsDTO->caption = trim($this->getSenderPrefix() . $caption);
 
         SendWhatsAppTelegramMessageJob::dispatch(
             $this->botUser->id,
